@@ -2,7 +2,9 @@ from __future__ import print_function
 
 import argparse
 
-from . import ModuleDiscovery, GitChanges, TestRunner
+from .runner import TestRunner
+from .discovery import ModuleDiscovery
+from .git import Changes
 
 
 def main():
@@ -28,14 +30,14 @@ def main():
         discovery.discover_all(path)
 
     if options.changes:
-        for filename, package in GitChanges.list_changed_packages(discovery):
+        for filename, package in Changes.list_changed_packages(discovery):
             print(filename, '->', package.fqdn)
 
     elif options.run_all:
         return TestRunner(discovery.packages).run()
 
     elif options.run_changed:
-        packages = [package for _, package in GitChanges.list_changed_packages(discovery)]
+        packages = [package for _, package in Changes.list_changed_packages(discovery)]
         return TestRunner(packages).run()
 
 
