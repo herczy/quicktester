@@ -37,8 +37,8 @@ class TestRunner(object):
         failures, rest = self.__statistics.order_by_failure(res)
         return failures + rest
 
-    def run(self):
-        runner = nose.core.TextTestRunner()
+    def run(self, verbosity):
+        runner = nose.core.TextTestRunner(verbosity=verbosity)
         result = runner.run(unittest.TestSuite(self.__cases))
         self.__statistics.report_result(result)
 

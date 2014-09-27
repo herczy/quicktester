@@ -12,6 +12,8 @@ def main():
 
     parser.add_argument('-p', '--path', action='append',
                         help='List of paths to scan')
+    parser.add_argument('-v', dest='verbosity', action='count', default=0,
+                        help='Test run verbosity (default: summary only)')
 
     command = parser.add_mutually_exclusive_group(required=True)
     command.add_argument('-a', '--run-all', action='store_true',
@@ -35,7 +37,7 @@ def main():
         packages = [package for _, package in changes]
         testrunner = TestRunner(packages).run()
 
-    return testrunner.run()
+    return testrunner.run(options.verbosity)
 
 
 if __name__ == '__main__':
