@@ -14,11 +14,9 @@ def main():
                         help='List of paths to scan')
 
     command = parser.add_mutually_exclusive_group(required=True)
-    command.add_argument('-c', '--changes', action='store_true',
-                         help='List changed packages')
-    command.add_argument('-RA', '--run-all', action='store_true',
+    command.add_argument('-a', '--run-all', action='store_true',
                          help='Run all tests')
-    command.add_argument('-RC', '--run-changed', action='store_true',
+    command.add_argument('-c', '--run-changed', action='store_true',
                          help='Run changed tests')
 
     options = parser.parse_args()
@@ -29,16 +27,15 @@ def main():
     for path in paths:
         discovery.discover_all(path)
 
-    if options.changes:
-        for filename, package in Changes.list_changed_packages(discovery):
-            print(filename, '->', package.fqdn)
-
-    elif options.run_all:
-        return TestRunner(discovery.packages).run()
+    if options.run_all:
+        testrunner = TestRunner(discovery.packages)
 
     elif options.run_changed:
-        packages = [package for _, package in Changes.list_changed_packages(discovery)]
-        return TestRunner(packages).run()
+        changes = list(Changes.list_changed_packages(discovery))
+        packages = [package for _, package in changes]
+        testrunner = TestRunner(packages).run()
+
+    return testrunner.run()
 
 
 if __name__ == '__main__':
