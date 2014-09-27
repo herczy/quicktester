@@ -1,18 +1,20 @@
-from __future__ import print_function
-
 import unittest
-import nose.loader
+import nose
 
 from .module import Package
+from .statistic import Statistic
 
 
 class TestRunner(object):
-    def __init__(self, packages):
-        self.__cases = []
-        self.__get_cases(packages, nose.loader.TestLoader())
+    def __init__(self, packages, statfile='./.quicktest-runstat'):
+        self.__statistics = Statistic(statfile)
+        self.__cases = self.__get_cases(packages, nose.loader.TestLoader())
 
     def __get_cases(self, packages, loader):
-        scanned = set()
+        cases = []
+        res = []
+        repeat = set()
+
         for module in packages:
             if isinstance(module, Package):
                 load_from = module
@@ -23,32 +25,22 @@ class TestRunner(object):
             if load_from is None:
                 continue
 
-            if load_from.fqdn in scanned:
-                continue
+            for case in load_from.load_related_tests(loader):
+                addr = nose.util.test_address(case)
 
-            self.__cases.extend(load_from.load_related_tests(loader))
-            scanned.add(load_from.fqdn)
+                if addr in repeat:
+                    continue
+
+                res.append(case)
+                repeat.add(addr)
+
+        failures, rest = self.__statistics.order_by_failure(res)
+        return failures + rest
 
     def run(self):
-        result = unittest.TestResult()
+        runner = nose.core.TextTestRunner()
+        result = runner.run(unittest.TestSuite(self.__cases))
+        self.__statistics.report_result(result)
 
-        for case in self.__cases:
-            case.run(result)
-
-        self.__print_result(result)
         if not result.wasSuccessful():
             return 1
-
-    def __print_result(self, result):
-        self.__print_traces('ERROR', result.errors)
-        self.__print_traces('FAIL', result.failures)
-
-    def __print_traces(self, status, reslist):
-        for test, trace in reslist:
-            self.__print_failure(status, test, trace)
-
-    def __print_failure(self, status, test, trace):
-        print('=' * 70)
-        print('{}: {}'.format(status, test))
-        print('-' * 70)
-        print(trace)
