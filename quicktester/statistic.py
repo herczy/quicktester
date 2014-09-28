@@ -38,16 +38,16 @@ class Statistic(object):
     def __init__(self, filename):
         self.__filename = filename
 
-        exists = os.path.isfile(self.__filename)
+        self.__exists = os.path.isfile(self.__filename)
         self.__sqlite = sqlite3.connect(self.__filename)
-        if not exists:
+        if not self.__exists:
             self.__create_table()
 
-    def __create_table(self):
-        self.__sqlite.execute(TABLE_DEF_TESTS)
-        self.__sqlite.execute(TABLE_DEF_FAILURES)
-        self.__sqlite.execute(TABLE_DEF_RUN)
-        self.__sqlite.commit()
+        self.__failed_tests = None
+
+    @property
+    def existed(self):
+        return self.__exists
 
     def report_result(self, result):
         try:
@@ -64,7 +64,21 @@ class Statistic(object):
 
         self.__sqlite.commit()
 
+    def get_fail_id(self, case):
+        if self.__failed_tests is None:
+            self.__load_failures()
+
+        return self.__failed_tests.get(nose.util.test_address(case), None)
+
+    def __create_table(self):
+        self.__sqlite.execute(TABLE_DEF_TESTS)
+        self.__sqlite.execute(TABLE_DEF_FAILURES)
+        self.__sqlite.execute(TABLE_DEF_RUN)
+        self.__sqlite.commit()
+
     def __report_failure(self, case, runid):
+        self.__failed_tests = None
+
         path, module, call = nose.util.test_address(case)
         id = self.__get_testcase_id(case)
         self.__sqlite.execute(
@@ -97,54 +111,25 @@ class Statistic(object):
         )
         return cur.lastrowid
 
-    def __get_failure_counts(self):
+    def __get_last_runid(self):
+        cur = self.__sqlite.execute('SELECT id FROM runs ORDER BY id DESC LIMIT 1')
+        res = cur.fetchone()
+        if res is None:
+            return 0
+
+        return res[0]
+
+    def __load_failures(self):
+        self.__failed_tests = {}
         cur = self.__sqlite.execute(
-            'SELECT path, module, call, count(*) AS failcount FROM failures JOIN tests ' +
+            'SELECT path, module, call, max(runid) FROM failures JOIN tests ' +
             'WHERE tests.id == failures.testid ' +
-            'GROUP BY path, module, call ' +
-            'ORDER BY failcount DESC;'
+            'GROUP BY path, module, call;'
         )
+        topid = self.__get_last_runid()
 
-        for path, module, call, failcount in cur:
-            yield (path, module, call), failcount
+        for path, module, call, runid in cur:
+            key = (path, module, call)
+            new_run_id = topid - runid
 
-    def order_by_failure(self, cases):
-        case_map = {nose.util.test_address(case): case for case in cases}
-        failures = []
-
-        for address, _ in self.__get_failure_counts():
-            if address not in case_map:
-                continue
-
-            case = case_map[address]
-            del case_map[address]
-            failures.append(case)
-
-        return failures, list(case_map.values())
-
-    def filter_by_failures(self, tests, run_count):
-        check_runs = self.__sqlite.execute(
-            'SELECT id FROM runs ORDER BY id DESC LIMIT ?',
-            (run_count,)
-        )
-
-        cases = set()
-        for id in check_runs:
-            id = id[0]
-            failures = self.__sqlite.execute(
-                'SELECT path, module, call FROM failures JOIN tests ' +
-                'WHERE failures.runid == ?',
-                (id,)
-            )
-            for path, module, call in failures:
-                cases.add((path, module, call))
-
-        if not cases:
-            return tests
-
-        res = []
-        for case in tests:
-            if nose.util.test_address(case) in cases:
-                res.append(case)
-
-        return res
+            self.__failed_tests[key] = new_run_id

@@ -20,5 +20,9 @@ setup(
         'console_scripts': [
             'quicktester = quicktester.__main__:main'
         ],
+        'nose.plugins.0.10': [
+            'statistic = quicktester.plugin:StatisticsPlugin',
+            'fail-only = quicktester.plugin:FailOnlyPlugin',
+        ],
     }
 )
