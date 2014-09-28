@@ -121,3 +121,30 @@ class Statistic(object):
             failures.append(case)
 
         return failures, list(case_map.values())
+
+    def filter_by_failures(self, tests, run_count):
+        check_runs = self.__sqlite.execute(
+            'SELECT id FROM runs ORDER BY id DESC LIMIT ?',
+            (run_count,)
+        )
+
+        cases = set()
+        for id in check_runs:
+            id = id[0]
+            failures = self.__sqlite.execute(
+                'SELECT path, module, call FROM failures JOIN tests ' +
+                'WHERE failures.runid == ?',
+                (id,)
+            )
+            for path, module, call in failures:
+                cases.add((path, module, call))
+
+        if not cases:
+            return tests
+
+        res = []
+        for case in tests:
+            if nose.util.test_address(case) in cases:
+                res.append(case)
+
+        return res

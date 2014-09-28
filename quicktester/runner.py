@@ -10,6 +10,7 @@ class RunnerConfig(object):
             self,
             verbosity=1,
             stop_on_error=False,
+            run_only_failed=None,
             statfile='./.quicktest-runstat'
     ):
         self.__statistics = Statistic(statfile)
@@ -22,6 +23,7 @@ class RunnerConfig(object):
         self.__loader = nose.loader.TestLoader(config=self.__config)
         self.__runner = nose.core.TextTestRunner(config=self.__config)
         self.__suite_factory = nose.suite.ContextSuiteFactory(config=self.__config)
+        self.__run_only_failed = run_only_failed
 
     @property
     def loader(self):
@@ -39,6 +41,10 @@ class RunnerConfig(object):
     def suite_factory(self):
         return self.__suite_factory
 
+    @property
+    def run_only_failed(self):
+        return self.__run_only_failed
+
 
 class TestRunner(object):
     def __init__(self, packages, config=None):
@@ -47,6 +53,10 @@ class TestRunner(object):
 
         self.__config = config
         self.__cases = self.__get_cases(packages, self.__config.loader)
+
+        failcount = self.__config.run_only_failed
+        if failcount:
+            self.__cases = self.__config.statistics.filter_by_failures(self.__cases, failcount)
 
     def __get_cases(self, packages, loader):
         cases = []

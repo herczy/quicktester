@@ -22,6 +22,8 @@ def main():
                          help='Run all tests')
     command.add_argument('-c', '--run-changed', action='store_true',
                          help='Run changed tests')
+    command.add_argument('-f', '--run-failed', type=int, metavar='RUNCOUNT', default=None,
+                         help='Rerun tests that failied in the last few runs (default: %(default)s)')
 
     options = parser.parse_args()
 
@@ -31,20 +33,19 @@ def main():
     for path in paths:
         discovery.discover_all(path)
 
-    if options.run_all:
+    config = RunnerConfig(
+        verbosity=options.verbosity,
+        stop_on_error=options.stop,
+        run_only_failed=options.run_failed,
+    )
+
+    if options.run_all or options.run_failed is not None:
         packages = discovery.packages
 
     elif options.run_changed:
-        changes = list(Changes.list_changed_packages(discovery))
-        packages = [package for _, package in changes]
+        packages = [package for _, package in Changes.list_changed_packages(discovery)]
 
-    config = RunnerConfig(
-        verbosity=options.verbosity,
-        stop_on_error=options.stop
-    )
-    testrunner = TestRunner(packages, config)
-
-    return testrunner.run()
+    return TestRunner(packages, config).run()
 
 
 if __name__ == '__main__':
