@@ -41,7 +41,7 @@ class Changes(object):
             if not line:
                 continue
 
-            filename = line[2:]
+            filename = line[3:]
             if not filename.endswith('.py'):
                 continue
 
