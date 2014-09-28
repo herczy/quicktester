@@ -64,11 +64,32 @@ class Statistic(object):
 
         self.__sqlite.commit()
 
-    def get_fail_id(self, case):
+    def check_if_failed(self, case, max_runid):
         if self.__failed_tests is None:
             self.__load_failures()
 
-        return self.__failed_tests.get(nose.util.test_address(case), None)
+        if not self.existed:
+            return True
+
+        failid = self.__failed_tests.get(nose.util.test_address(case), None)
+        return self.__check_failid(failid, max_runid)
+
+    def get_failure_paths(self, max_runid):
+        if self.__failed_tests is None:
+            self.__load_failures()
+
+        res = set()
+        for key, failid in self.__failed_tests.items():
+            path, module, call = key
+            if not self.__check_failid(failid, max_runid):
+                continue
+
+            res.add(path)
+
+        return res
+
+    def __check_failid(self, failid, max_runid):
+        return failid is not None and failid >= 1 - max_runid
 
     def __create_table(self):
         self.__sqlite.execute(TABLE_DEF_TESTS)

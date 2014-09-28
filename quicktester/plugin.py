@@ -1,6 +1,10 @@
 import nose
+import subprocess
+import os.path
 
 from .statistic import Statistic
+from .git import Changes
+from . import util
 
 
 DEFAULT_STATISTICS_FILE = '.quicktester-statistics'
@@ -49,9 +53,7 @@ class FailOnlyPlugin(nose.plugins.Plugin):
     statistic = None
 
     def check_if_failed(self, obj):
-        if self.statistic.existed:
-            failid = self.statistic.get_fail_id(obj) 
-            return failid is not None and failid >= 1 - self.run_count
+        return self.statistic.check_if_failed(obj, self.run_count)
 
     #
     # Interface functions
@@ -70,13 +72,43 @@ class FailOnlyPlugin(nose.plugins.Plugin):
     def configure(self, options, config):
         super(FailOnlyPlugin, self).configure(options, config)
 
-        if options.run_count > 0 and getattr(options, 'statistics_file', None) is not None:
-            self.run_count = options.run_count
-            self.statistic = Statistic(options.statistics_file)
-            self.enabled = True
+        if options.run_count <= 0 or getattr(options, 'statistics_file', None) is None:
+            return
+
+        self.run_count = options.run_count
+        self.statistic = Statistic(options.statistics_file)
+        self.enabled = True
+
+        failed_paths = self.statistic.get_failure_paths(self.run_count)
+        if not config.testNames and failed_paths:
+            config.testNames = failed_paths
 
     def wantFunction(self, func):
         return self.check_if_failed(func)
 
     def wantMethod(self, method):
         return self.check_if_failed(method)
+
+
+class GitChanges(nose.plugins.Plugin):
+    name = 'git-change'
+    enabled = False
+    changes = ()
+
+    def options(self, parser, env):
+        parser.add_option(
+            '--git-changes',
+            action='store_true',
+            help='Run only modules where git changed'
+        )
+
+    def configure(self, options, config):
+        if not options.git_changes:
+            return
+
+        self.enabled = True
+        if config.testNames:
+            config.testNames = Changes().restrict_paths(config.testNames)
+
+        else:
+            config.testNames = Changes().get_changes()
