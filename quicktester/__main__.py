@@ -16,14 +16,14 @@ def main():
                         help='Test run verbosity (default: summary only)')
     parser.add_argument('--stop', dest='stop', action='store_true', default=False,
                         help='Stop if an error is encountered')
+    parser.add_argument('-f', '--run-failed', type=int, metavar='RUNCOUNT', default=None,
+                        help='Rerun tests that failied in the last few runs (default: %(default)s)')
 
     command = parser.add_mutually_exclusive_group(required=True)
     command.add_argument('-a', '--run-all', action='store_true',
                          help='Run all tests')
     command.add_argument('-c', '--run-changed', action='store_true',
                          help='Run changed tests')
-    command.add_argument('-f', '--run-failed', type=int, metavar='RUNCOUNT', default=None,
-                         help='Rerun tests that failied in the last few runs (default: %(default)s)')
     command.add_argument('-r', '--run-related', metavar='FILENAME', action='append', default=[],
                          help='Run tests related to the given file(s)')
 
