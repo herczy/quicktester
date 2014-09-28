@@ -2,12 +2,9 @@ import nose
 import subprocess
 import os.path
 
-from .statistic import Statistic
+from .statistic import Statistic, DEFAULT_STATISTICS_FILE
 from .git import Changes
 from . import util
-
-
-DEFAULT_STATISTICS_FILE = '.quicktester-statistics'
 
 
 class StatisticsPlugin(nose.plugins.Plugin):

@@ -1,11 +1,15 @@
 from __future__ import print_function
 
+import sys
 import os.path
 import json
 import nose
 import datetime
 
 import sqlite3
+
+
+DEFAULT_STATISTICS_FILE = '.quicktester-statistics'
 
 
 TABLE_DEF_TESTS = '''
@@ -154,3 +158,38 @@ class Statistic(object):
             new_run_id = topid - runid
 
             self.__failed_tests[key] = new_run_id
+
+    def dump_info(self, stream=sys.stdout):
+        cur = self.__sqlite.execute('SELECT count(*) FROM runs')
+        runcount = cur.fetchone()[0]
+
+        cur = self.__sqlite.execute(
+            'SELECT path, module, call, count(*) AS failcount FROM failures JOIN tests ' +
+            'WHERE tests.id == failures.testid ' +
+            'GROUP BY path, module, call ' +
+            'ORDER BY failcount DESC;'
+        )
+
+        for path, module, call, failcount in cur:
+            print(
+                '[{} / {}] {}:{}:{}'.format(
+                    failcount, runcount, path, module, call
+                ),
+                file=stream
+            )
+
+
+def quicktest_statistics():
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description='Statistic analizer for the quicktester nose plugins'
+    )
+
+    parser.add_argument('-f', '--file', default=DEFAULT_STATISTICS_FILE,
+                        help='Statistics file (default: %(default)s')
+
+    options = parser.parse_args()
+
+    Statistic(options.file).dump_info()
+    return 0
