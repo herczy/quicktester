@@ -1,5 +1,6 @@
 from __future__ import print_function
 
+import os.path
 import argparse
 
 from .runner import TestRunner, RunnerConfig
@@ -28,6 +29,9 @@ def main():
                          help='Run tests related to the given file(s)')
 
     options = parser.parse_args()
+
+    if options.run_related:
+        options.path = list({os.path.dirname(path) for path in options.run_related})
 
     discovery = ModuleDiscovery()
     paths = list(options.path or ('.',))
