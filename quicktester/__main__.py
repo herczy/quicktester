@@ -24,6 +24,8 @@ def main():
                          help='Run changed tests')
     command.add_argument('-f', '--run-failed', type=int, metavar='RUNCOUNT', default=None,
                          help='Rerun tests that failied in the last few runs (default: %(default)s)')
+    command.add_argument('-r', '--run-related', metavar='FILENAME', action='append', default=[],
+                         help='Run tests related to the given file(s)')
 
     options = parser.parse_args()
 
@@ -44,6 +46,9 @@ def main():
 
     elif options.run_changed:
         packages = [package for _, package in Changes.list_changed_packages(discovery)]
+
+    elif options.run_related:
+        packages = [discovery.find_related_package(filename) for filename in options.run_related]
 
     return TestRunner(packages, config).run()
 
