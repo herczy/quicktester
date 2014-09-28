@@ -1,5 +1,9 @@
+#
+# WAITING FOR REFACTORING, DO NOT USE
+#
 from __future__ import print_function
 
+import sys
 import os.path
 import argparse
 
@@ -9,6 +13,9 @@ from .git import Changes
 
 
 def main():
+    print('WAITING FOR REFACTORING, DO NOT USE', file=sys.stderr)
+    exit(1)
+
     parser = argparse.ArgumentParser()
 
     parser.add_argument('-p', '--path', action='append',
@@ -29,9 +36,6 @@ def main():
                          help='Run tests related to the given file(s)')
 
     options = parser.parse_args()
-
-    if options.run_related:
-        options.path = list({os.path.dirname(path) for path in options.run_related})
 
     discovery = ModuleDiscovery()
     paths = list(options.path or ('.',))
