@@ -61,6 +61,15 @@ class Module(object):
     def load_related_tests(self, loader):
         return ()
 
+    def is_subpackage(self, other):
+        return False
+
+    def __str__(self):
+        return '<Module {}>'.format(self.fqdn)
+
+    def __repr__(self):
+        return '{}({})'.format(type(self).__name__, self.fqdn)
+
 
 class Package(Module):
     def __init__(self, *args, **kwargs):
@@ -96,3 +105,15 @@ class Package(Module):
             res.extend(self.__flatten(suite))
 
         return res
+
+    def has_subpackage(self, other):
+        if other.fqdn == self.fqdn:
+            return True
+
+        if other.parent is None:
+            return False
+
+        return self.has_subpackage(other.parent)
+
+    def __str__(self):
+        return '<Package {}>'.format(self.fqdn)
