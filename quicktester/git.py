@@ -13,6 +13,9 @@ class Changes(object):
 
         self.__collect_changes()
 
+    def __bool__(self):
+        return bool(self.__changed)
+
     def restrict_paths(self, paths):
         '''Restrict the given paths to the changes.'''
 
@@ -37,12 +40,14 @@ class Changes(object):
             return
 
         for line in res.split('\n'):
-            line = line.strip()
             if not line:
                 continue
 
             filename = line[3:]
             if not filename.endswith('.py'):
                 continue
+
+            if not os.path.basename(filename).startswith('test_'):
+                filename = os.path.dirname(filename)
 
             self.__changed.add(os.path.abspath(filename))

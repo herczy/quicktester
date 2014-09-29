@@ -90,7 +90,6 @@ class FailOnlyPlugin(nose.plugins.Plugin):
 class GitChanges(nose.plugins.Plugin):
     name = 'git-change'
     enabled = False
-    changes = ()
 
     def options(self, parser, env):
         parser.add_option(
@@ -99,13 +98,22 @@ class GitChanges(nose.plugins.Plugin):
             help='Run only modules where git changed'
         )
 
+    def prepareLoader(self, loader):
+        self.loader = loader
+
     def configure(self, options, config):
         if not options.git_changes:
             return
 
         self.enabled = True
+        changes = Changes()
+        if not changes:
+            raise RuntimeError('No GIT changes found')
+
         if config.testNames:
-            config.testNames = Changes().restrict_paths(config.testNames)
+            restricted = changes.restrict_paths(config.testNames)
+            if restricted:
+                config.testNames = restricted
 
         else:
-            config.testNames = Changes().get_changes()
+            config.testNames = changes.get_changes()
