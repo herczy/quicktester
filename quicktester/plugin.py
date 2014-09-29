@@ -72,13 +72,18 @@ class FailOnlyPlugin(nose.plugins.Plugin):
         if options.run_count <= 0 or getattr(options, 'statistics_file', None) is None:
             return
 
+        if not os.path.isfile(options.statistics_file):
+            return
+
         self.run_count = options.run_count
         self.statistic = Statistic(options.statistics_file)
         self.enabled = True
 
         failed_paths = self.statistic.get_failure_paths(self.run_count)
-        if not config.testNames and failed_paths:
-            config.testNames = failed_paths
+        if not failed_paths:
+            raise RuntimeError('No previous failures found')
+
+        util.update_test_names(config, failed_paths)
 
     def wantFunction(self, func):
         return self.check_if_failed(func)
@@ -110,10 +115,4 @@ class GitChanges(nose.plugins.Plugin):
         if not changes:
             raise RuntimeError('No GIT changes found')
 
-        if config.testNames:
-            restricted = changes.restrict_paths(config.testNames)
-            if restricted:
-                config.testNames = restricted
-
-        else:
-            config.testNames = changes.get_changes()
+        util.update_test_names(config, changes.get_changes())

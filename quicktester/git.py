@@ -47,7 +47,6 @@ class Changes(object):
             if not filename.endswith('.py'):
                 continue
 
-            if not os.path.basename(filename).startswith('test_'):
-                filename = os.path.dirname(filename)
-
             self.__changed.add(os.path.abspath(filename))
+
+        self.__changed = util.filter_non_test_paths(self.__changed)

@@ -12,3 +12,25 @@ def is_in_restricted(path, restriction):
             return True
 
     return False
+
+
+def filter_non_test_paths(paths):
+    res = []
+    for path in paths:
+        if os.path.isdir(path) or os.path.dirname(path).startswith('test_'):
+            res.append(path)
+
+        else:
+            res.append(os.path.dirname(path))
+
+    return res
+
+
+def update_test_names(config, relevant_paths):
+    if config.testNames:
+        restricted = restrict(config.testNames, relevant_paths)
+        if restricted:
+            config.testNames = restricted
+
+    else:
+        config.testNames = relevant_paths

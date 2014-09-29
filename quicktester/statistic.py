@@ -8,6 +8,8 @@ import datetime
 
 import sqlite3
 
+from . import util
+
 
 DEFAULT_STATISTICS_FILE = '.quicktester-statistics'
 
@@ -90,7 +92,7 @@ class Statistic(object):
 
             res.add(path)
 
-        return res
+        return util.filter_non_test_paths(res)
 
     def __check_failid(self, failid, max_runid):
         return failid is not None and failid >= 1 - max_runid
@@ -155,25 +157,48 @@ class Statistic(object):
 
         for path, module, call, runid in cur:
             key = (path, module, call)
-            new_run_id = topid - runid
+            new_run_id = runid - topid
 
-            self.__failed_tests[key] = new_run_id
+            if key not in self.__failed_tests:
+                self.__failed_tests[key] = new_run_id
+
+            else:
+                self.__failed_tests[key] = max(new_run_id, self.__failed_tests[key])
+
+    def __get_runbar(self, failed_runs, current_id, display_count=10):
+        res = []
+        for index in range(current_id - display_count, current_id + 1):
+            if index < 0:
+                res.append(' ')
+
+            elif index in failed_runs:
+                res.append('F')
+
+            else:
+                res.append('.')
+
+        return ''.join(res)
 
     def dump_info(self, stream=sys.stdout):
         cur = self.__sqlite.execute('SELECT count(*) FROM runs')
         runcount = cur.fetchone()[0]
 
         cur = self.__sqlite.execute(
-            'SELECT path, module, call, count(*) AS failcount FROM failures JOIN tests ' +
-            'WHERE tests.id == failures.testid ' +
-            'GROUP BY path, module, call ' +
-            'ORDER BY failcount DESC;'
+            'SELECT path, module, call, failures.runid AS runid FROM failures JOIN tests ' +
+            'WHERE tests.id == failures.testid;'
         )
 
-        for path, module, call, failcount in cur:
+        failures = {}
+
+        for path, module, call, runid in cur:
+            key = (path, module, call)
+            failures.setdefault(key, set())
+            failures[key].add(runid)
+
+        for key, failures in failures.items():
             print(
-                '[{} / {}] {}:{}:{}'.format(
-                    failcount, runcount, path, module, call
+                '[{}] {}:{}:{}'.format(
+                    self.__get_runbar(failures, runcount), key[0], key[1], key[2]
                 ),
                 file=stream
             )
