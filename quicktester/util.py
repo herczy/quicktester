@@ -26,11 +26,29 @@ def filter_non_test_paths(paths):
     return res
 
 
+def reduce_paths(paths):
+    paths = list(paths)
+    paths.sort()
+    res = []
+
+    for path in paths:
+        if not res:
+            res.append(path)
+            continue
+
+        if os.path.relpath(path, res[-1]).split(os.path.sep)[0] != '..':
+            continue
+
+        res.append(path)
+
+    return res
+
+
 def update_test_names(config, relevant_paths):
     if config.testNames:
         restricted = restrict(config.testNames, relevant_paths)
         if restricted:
-            config.testNames = restricted
+            config.testNames = reduce_paths(restricted)
 
     else:
-        config.testNames = relevant_paths
+        config.testNames = reduce_paths(relevant_paths)
