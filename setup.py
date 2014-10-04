@@ -1,9 +1,14 @@
 import os
+import re
 try:
     from setuptools import setup
 
 except ImportError:
     from distutils.core import setup
+
+
+with open('requirements.txt') as f:
+    requires = [re.sub(r'^([^<>=]*)[<>=]=.*$', r'\1', line.strip()) for line in f if line]
 
 
 setup(
@@ -25,5 +30,6 @@ setup(
             'fail-only = quicktester.plugin.failonly:FailOnlyPlugin',
             'git-change = quicktester.plugin.git:GitChangesPlugin',
         ],
-    }
+    },
+    requires=requires
 )
