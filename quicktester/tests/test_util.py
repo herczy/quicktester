@@ -7,6 +7,11 @@ from .. import util
 
 
 class TestUtil(unittest.TestCase):
+    def test_is_reldir(self):
+        self.assertTrue(util.is_reldir('a/b', ''))
+        self.assertTrue(util.is_reldir('a/b', 'a'))
+        self.assertFalse(util.is_reldir('a/b', 'b'))
+
     def test_is_in_restricted(self):
         self.assertFalse(util.is_in_restricted('something', []))
         self.assertTrue(util.is_in_restricted('a/b', ['a']))

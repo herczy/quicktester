@@ -16,9 +16,15 @@ class PluginTestCase(unittest.TestCase):
         plugin.options(parser, {})
         return parser.parse_args(shlex.split(cli))[0]
 
-    def get_configured_plugin(self, cli):
+    def get_configured_plugin(self, cli, config=None, **extra):
         plugin = self.plugin()
         ns = self.process_plugin_options(cli, plugin=plugin)
-        plugin.configure(ns, FakeConfig())
+        for key, value in extra.items():
+            setattr(ns, key, value)
+
+        if config is None:
+            config = FakeConfig()
+
+        plugin.configure(ns, config)
 
         return plugin

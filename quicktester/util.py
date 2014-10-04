@@ -1,7 +1,7 @@
 import os.path
 
 
-def __check_is_reldir(path, base):
+def is_reldir(path, base):
     return os.path.relpath(path, base).split(os.path.sep)[0] != '..'
 
 
@@ -14,7 +14,7 @@ def __is_testing_path(path, os_isdir_func):
 
 
 def is_in_restricted(path, restriction):
-    return any(__check_is_reldir(path, change) for change in restriction)
+    return any(is_reldir(path, change) for change in restriction)
 
 
 def restrict(paths, restriction):
@@ -28,7 +28,7 @@ def get_testing_paths(paths, os_isdir_func=os.path.isdir):
 def reduce_paths(paths):
     res = []
     for path in sorted(paths):
-        if res and __check_is_reldir(path, res[-1]):
+        if res and is_reldir(path, res[-1]):
             continue
 
         res.append(path)

@@ -22,7 +22,7 @@ setup(
         ],
         'nose.plugins.0.10': [
             'statistic = quicktester.plugin.statistic:StatisticsPlugin',
-            'fail-only = quicktester.plugin:FailOnlyPlugin',
+            'fail-only = quicktester.plugin.failonly:FailOnlyPlugin',
             'git-change = quicktester.plugin:GitChanges',
         ],
     }
