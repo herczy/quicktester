@@ -14,10 +14,10 @@ class Statistic(object):
     def report_result(self, result):
         fail_paths = []
 
-        for failure in result.failures:
+        for failure, _ in result.failures:
             fail_paths.append(nose.util.test_address(failure))
 
-        for error in result.errors:
+        for error, _ in result.errors:
             fail_paths.append(nose.util.test_address(error))
 
         self.__runs.append(fail_paths)

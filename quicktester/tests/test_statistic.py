@@ -34,13 +34,13 @@ class TestStatistics(unittest.TestCase):
         self.assertFalse(statistic.check_if_failed(self.tests[0], 1))
 
     def test_check_if_recent_failed(self):
-        self.results[0].errors.append(self.tests[0])
+        self.results[0].errors.append((self.tests[0], None))
         statistic = self.initialize_statistic()
 
         self.assertTrue(statistic.check_if_failed(self.tests[0], 1))
 
     def test_check_if_nonrecent_failed(self):
-        self.results[0].errors.append(self.tests[0])
+        self.results[0].errors.append((self.tests[0], None))
         self.results.append(FakeResult(self.tests))
         statistic = self.initialize_statistic()
 
@@ -56,17 +56,17 @@ class TestStatistics(unittest.TestCase):
         self.assertRaises(ValueError, Statistic(None).check_if_failed, object(), 0)
 
     def test_report_with_failure(self):
-        self.results[0].failures.append(self.tests[0])
+        self.results[0].failures.append((self.tests[0], None))
 
         self.assert_failures(['/path/a/b'])
 
     def test_report_with_errors(self):
-        self.results[0].errors.append(self.tests[0])
+        self.results[0].errors.append((self.tests[0], None))
 
         self.assert_failures(['/path/a/b'])
 
     def test_report_multiple_runs(self):
-        self.results[0].errors.append(self.tests[0])
+        self.results[0].errors.append((self.tests[0], None))
         self.results.append(FakeResult(self.tests))
 
         self.assert_failures([])
@@ -77,7 +77,7 @@ class TestStatistics(unittest.TestCase):
             f.write('[]')
             f.flush()
 
-            self.results[0].errors.append(self.tests[0])
+            self.results[0].errors.append((self.tests[0], ''))
             Statistic(f.name).report_result(self.results[0])
 
             statistic = Statistic(f.name)
@@ -92,11 +92,11 @@ class TestStatistics(unittest.TestCase):
 
         statistic.report_result(self.results[0])
 
-        self.results[0].errors.append(self.tests[0])
+        self.results[0].errors.append((self.tests[0], ''))
         statistic.report_result(self.results[0])
 
         self.results[0].errors = []
-        self.results[0].failures.append(self.tests[0])
+        self.results[0].failures.append((self.tests[0], ''))
         statistic.report_result(self.results[0])
 
         with tempfile.NamedTemporaryFile(mode='w+') as f:

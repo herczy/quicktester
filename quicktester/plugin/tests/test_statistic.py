@@ -30,7 +30,7 @@ class StatisticsPluginTest(PluginTestCase):
 
     def test_finalize_results(self):
         result = FakeResult([FakeTest('/path/to/module', 'module', 'Test.func')])
-        result.errors.append(result.tests[0])
+        result.errors.append((result.tests[0], ''))
 
         with tempfile.NamedTemporaryFile(mode='w+') as f:
             f.write('[]')
