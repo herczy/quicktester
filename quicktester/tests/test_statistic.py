@@ -84,7 +84,7 @@ class TestStatistics(unittest.TestCase):
             self.assertListEqual(['/path/a/b'], statistic.get_failure_paths(1))
 
     EXPECTED_OUTPUT = '''\
-[       .FF] /path/a/b:a.b:Test.func
+[       .FF] a/b:a.b:Test.func
 '''
 
     def test_dump_info(self):
@@ -100,7 +100,7 @@ class TestStatistics(unittest.TestCase):
         statistic.report_result(self.results[0])
 
         with tempfile.NamedTemporaryFile(mode='w+') as f:
-            statistic.dump_info(10, file=f)
+            statistic.dump_info(10, relto='/path/', file=f)
             f.flush()
             f.seek(0)
 

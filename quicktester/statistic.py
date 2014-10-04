@@ -32,7 +32,7 @@ class Statistic(object):
         restricted_set = self.__get_restricted_set(backlog)
         return [path for fail_paths in restricted_set for path, _, _ in fail_paths]
 
-    def dump_info(self, backlog, file=sys.stdout):
+    def dump_info(self, backlog, relto='.', file=sys.stdout):
         restricted_set = self.__get_restricted_set(backlog)
         test_run_ids = {}
 
@@ -47,7 +47,7 @@ class Statistic(object):
         for path, module, call in keys:
             runbar = self.__get_runbar(test_run_ids[addr], backlog)
 
-            print('[{}] {}:{}:{}'.format(runbar, path, module, call), file=file)
+            print('[{}] {}:{}:{}'.format(runbar, os.path.relpath(path, relto), module, call), file=file)
 
     def __get_restricted_set(self, backlog):
         if backlog <= 0:
