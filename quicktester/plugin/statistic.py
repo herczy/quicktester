@@ -48,7 +48,7 @@ def quicktester_statistics():
 
     parser.add_argument('-f', '--file', default=DEFAULT_STATISTICS_FILE,
                         help='Statistics file (default: %(default)s')
-    parser.add_argument('-b', '--backlog', default=10,
+    parser.add_argument('-b', '--backlog', default=10, type=int,
                         help='Backlog to show (default: %(default)s')
 
     options = parser.parse_args()

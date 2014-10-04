@@ -4,6 +4,7 @@ import sys
 import shlex
 import subprocess
 import unittest
+import pkg_resources
 
 
 tools_path = os.path.abspath(os.path.join(__file__, '..', '..', 'tools'))
@@ -27,7 +28,7 @@ def __make_assert_class():
         def nop():
             pass
 
-    assert_dict = {}
+    assert_dict = {'maxDiff': None}
     dummy = Dummy('nop')
     for attribute in dir(dummy):
         if not attribute.startswith('assert') or '_' in attribute:
@@ -62,36 +63,47 @@ def append_env_path(environ, dest, path, sep=':'):
     environ[dest] = ':'.join(paths)
 
 
-def run_tool(name, args):
+def run(command, expected_rc=0):
+    env = dict(os.environ)
+    append_env_path(env, 'PYTHONPATH', git_repo_path)
+
+    process = subprocess.Popen(
+        [sys.executable] + command,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        env=env,
+        universal_newlines=True
+    )
+
+    stdout, stderr = process.communicate()
+    if process.returncode != expected_rc:
+        print('----- BEGIN STDERR OUTPUT -----')
+        print(stderr)
+        print('----- END STDERR OUTPUT -----')
+
+    Assert.equal(expected_rc, process.returncode)
+
+    return stdout
+
+
+def run_tool(name, args, expected_rc=0):
     if args is None:
         args = []
 
     else:
         args = shlex.split(args)
 
-    env = dict(os.environ)
-    append_env_path(env, 'PYTHONPATH', git_repo_path)
-
     path = os.path.join(tools_path, name + '.py')
-    process = subprocess.Popen(
-        [sys.executable, path] + args,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        env=env,
-        universal_newlines=True
-    )
-    stdout, stderr = process.communicate()
-
-    return stdout, stderr, process.returncode
+    return run([path] + args, expected_rc=expected_rc)
 
 
 def run_quicktester_statistics(cli_args=None):
-    stdout, stderr, rc = run_tool('quicktester-statistics', cli_args)
-    if rc != 0:
-        print('----- BEGIN STDERR OUTPUT -----')
-        print(stderr)
-        print('----- END STDERR OUTPUT -----')
+    return run_tool('quicktester-statistics', cli_args)
 
-    Assert.equal(0, rc)
 
-    return stdout
+def ensure_plugins():
+    run(['setup.py', 'egg_info'])
+
+
+def run_nose(expected_rc):
+    run_tool('nosetests', '', expected_rc=expected_rc)
