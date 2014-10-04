@@ -1,11 +1,11 @@
-from steps import library
+from steps import environment
 from quicktester.tests.clone import TemporaryClone
 
 
 def before_scenario(context, scenario):
-    context.git_repo = TemporaryClone()
-    context.git_repo.__enter__()
+    context.environment = environment.RunEnvironment()
+    context.environment.enter()
 
 
 def after_scenario(context, scenario):
-    context.git_repo.__exit__(None, None, None)
+    context.environment.exit()

@@ -5,15 +5,15 @@ Feature: the command-line statistics tool
   I want to see what tests failed in the last few runs
 
   Background:
-    Given a freshly-cloned git repository with some tests
+    Given an empty package "example"
 
   Scenario: getting the statistics without previous test runs
      When the CLI tool is executed
      Then it does not print anything
 
   Scenario: fixing a test and seeing the statistics
-    Given the plugins are accessible
-     When the test file "quicktester/tests/test_example.py" is created:
+    Given the plugins are installed
+     When the test file "example/tests/test_example.py" is created:
           """
           import unittest
 
@@ -22,7 +22,7 @@ Feature: the command-line statistics tool
                   self.assertEqual(0, 1)
           """
       And nose is run and fails
-      And the test file "quicktester/tests/test_example.py" is changed:
+      And the test file "example/tests/test_example.py" is changed:
           """
           import unittest
 
@@ -34,5 +34,5 @@ Feature: the command-line statistics tool
       And the CLI tool is executed with a backlog of 2
      Then it prints the following:
           """
-          [F.] quicktester/tests/test_example.py:quicktester.tests.test_example:TestExample.test_example
+          [F.] example/tests/test_example.py:example.tests.test_example:TestExample.test_example
           """

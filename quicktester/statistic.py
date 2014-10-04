@@ -76,7 +76,7 @@ class Statistic(object):
             return []
 
         with open(self.__filename, 'r') as f:
-            return [[tuple(address) for address in run] for run in json.load(f)]
+            return [[tuple(str(c) for c in address) for address in run] for run in json.load(f)]
 
     def __save_data(self, data):
         if self.__filename is not None:

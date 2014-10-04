@@ -1,20 +1,29 @@
+import os
 import library
 
 
-@given('a freshly-cloned git repository with some tests')
-def step_impl(context):
-    pass
+@given('an empty package "{package:w}"')
+def step_impl(context, package):
+    context.environment.write('{}/__init__.py'.format(package), '')
+    context.environment.write('{}/tests/__init__.py'.format(package), '')
 
 
-@given('the plugins are accessible')
+@given('the plugins are installed')
 def step_impl(context):
-    library.ensure_plugins()
+    path = os.getcwd()
+
+    context.environment.exit()
+    try:
+        library.build_egg_file(path)
+
+    finally:
+        context.environment.enter()
 
 
 @when('the test file "{filename}" is created')
 @when('the test file "{filename}" is changed')
 def step_impl(context, filename):
-    context.git_repo.write(filename, context.text)
+    context.environment.write(filename, context.text)
 
 
 @when('nose is run and {state:w}')

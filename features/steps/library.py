@@ -101,8 +101,8 @@ def run_quicktester_statistics(cli_args=None):
     return run_tool('quicktester-statistics', cli_args)[0]
 
 
-def ensure_plugins():
-    run(['setup.py', 'egg_info'])
+def build_egg_file(dest):
+    run(['setup.py', 'bdist_egg', '--dist', dest])
 
 
 def run_nose(cli_args=None, expected_rc=0):
