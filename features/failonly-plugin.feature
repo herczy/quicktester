@@ -1,4 +1,4 @@
-Feature: the command-line statistics tool
+Feature: fail-only plugin
 
   As a programmer
   In order to quickly check the fixes I wrote for failing tests
