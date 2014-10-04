@@ -16,7 +16,7 @@ class TemporaryClone(object):
     clone_repo = os.path.abspath(os.path.join(quicktester.__file__, '..', '..'))
 
     def __enter__(self):
-        self.name = tempfile.mkdtemp()
+        self.name = tempfile.mkdtemp(prefix='quickrunner-clone-')
         self.oldcwd = os.getcwd()
 
         self.__execute('git clone "{0}" "{1}"'.format(self.clone_repo, self.name))
