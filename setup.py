@@ -15,13 +15,13 @@ setup(
     author_email="hercinger.viktor@gmail.com",
     maintainer="Viktor Hercinger",
     maintainer_email="hercinger.viktor@gmail.com",
-    packages=['quicktester'],
+    packages=['quicktester', 'quicktester.plugin'],
     entry_points={
         'console_scripts': [
             'quicktester-statistics = quicktester.statistic:quicktester_statistics'
         ],
         'nose.plugins.0.10': [
-            'statistic = quicktester.plugin:StatisticsPlugin',
+            'statistic = quicktester.plugin.statistic:StatisticsPlugin',
             'fail-only = quicktester.plugin:FailOnlyPlugin',
             'git-change = quicktester.plugin:GitChanges',
         ],

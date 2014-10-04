@@ -1,6 +1,8 @@
 import os.path
 import unittest
 
+from . import FakeConfig
+
 from .. import util
 
 
@@ -65,8 +67,3 @@ class TestUtil(unittest.TestCase):
         self.__assert_testname_reduction(['a/b'], ['a/b'], ['a'])
         self.__assert_testname_reduction(['a'], ['a', 'a/b'], ['a'])
         self.__assert_testname_reduction(['a', 'c'], ['a', 'c'], ['a/b'])
-
-
-class FakeConfig(object):
-    def __init__(self, test_names):
-        self.testNames = list(test_names)
