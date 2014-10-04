@@ -4,8 +4,9 @@ import library
 
 
 @when('nose is run again with the failing tests and passes')
-def step_impl(context):
-    context.nose_output = library.run_nose(cli_args='-v --run-count 1')
+@when('nose is run again with the failing tests in the last {run_count:d} runs and passes')
+def step_impl(context, run_count=1):
+    context.nose_output = library.run_nose(cli_args='-v --run-count {}'.format(run_count))
 
 
 @then('only the "{fullname}" tests has beed rerun')
