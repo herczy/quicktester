@@ -92,7 +92,7 @@ class Statistic(object):
 
             res.add(path)
 
-        return util.filter_non_test_paths(res)
+        return util.get_testing_paths(res)
 
     def __check_failid(self, failid, max_runid):
         return failid is not None and failid >= 1 - max_runid

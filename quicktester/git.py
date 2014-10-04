@@ -49,4 +49,4 @@ class Changes(object):
 
             self.__changed.add(os.path.abspath(filename))
 
-        self.__changed = util.filter_non_test_paths(self.__changed)
+        self.__changed = util.get_testing_paths(self.__changed)
