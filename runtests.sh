@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
-PYTHON_VERSIONS="2.7 3.2"
+PYTHON_VERSIONS="2 3"
 
 for VERSION in $PYTHON_VERSIONS
 do
-    PYTHON=$(which python$VERSION) make
+    PYTHON="$(which python$VERSION) -B" make
 done
