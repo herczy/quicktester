@@ -25,8 +25,7 @@ def step_impl(context):
 @when('the test file "{filename}" is created')
 @when('the test file "{filename}" is changed')
 def step_impl(context, filename):
-    with open(filename, 'w') as f:
-        f.write(context.text)
+    context.git_repo.write(filename, context.text)
 
 
 @when('nose is run and {state:w}')

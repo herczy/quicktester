@@ -6,14 +6,21 @@ import subprocess
 import unittest
 import pkg_resources
 
-
 tools_path = os.path.abspath(os.path.join(__file__, '..', '..', 'tools'))
 git_repo_path = os.path.abspath(os.path.join(__file__, '..', '..', '..'))
-caps = re.compile('([A-Z])')
-prefix = 'assert_'
+
+try:
+    sys.path.insert(0, git_repo_path)
+    import quicktester
+
+finally:
+    sys.path.remove(git_repo_path)
 
 
 def __make_assert_class():
+    caps = re.compile('([A-Z])')
+    prefix = 'assert_'
+
     def make_pep8_name(name):
         sub = caps.sub(lambda m: '_' + m.groups()[0].lower(), name)
         return sub[len(prefix):]
@@ -41,14 +48,6 @@ def __make_assert_class():
 
 Assert = __make_assert_class()
 del __make_assert_class
-
-
-try:
-    sys.path.insert(0, git_repo_path)
-    import quicktester
-
-finally:
-    sys.path.remove(git_repo_path)
 
 
 def append_env_path(environ, dest, path, sep=':'):
