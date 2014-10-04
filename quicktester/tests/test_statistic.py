@@ -6,15 +6,18 @@ from ..statistic import Statistic
 
 
 class TestStatistics(unittest.TestCase):
-    def assert_failures(self, expected, backlog=1):
+    def initialize_statistic(self):
         statistic = Statistic(None)
 
         for result in self.results:
             statistic.report_result(result)
-        
+
+        return statistic
+
+    def assert_failures(self, expected, backlog=1):
         self.assertListEqual(
             expected,
-            statistic.get_failure_paths(backlog)
+            self.initialize_statistic().get_failure_paths(backlog)
         )
 
     def setUp(self):
@@ -25,12 +28,32 @@ class TestStatistics(unittest.TestCase):
             FakeResult(self.tests),
         ]
 
+    def test_check_if_nothing_failed(self):
+        statistic = self.initialize_statistic()
+
+        self.assertFalse(statistic.check_if_failed(self.tests[0], 1))
+
+    def test_check_if_recent_failed(self):
+        self.results[0].errors.append(self.tests[0])
+        statistic = self.initialize_statistic()
+
+        self.assertTrue(statistic.check_if_failed(self.tests[0], 1))
+
+    def test_check_if_nonrecent_failed(self):
+        self.results[0].errors.append(self.tests[0])
+        self.results.append(FakeResult(self.tests))
+        statistic = self.initialize_statistic()
+
+        self.assertFalse(statistic.check_if_failed(self.tests[0], 1))
+        self.assertTrue(statistic.check_if_failed(self.tests[0], 2))
+
     def test_report_all_passing(self):
         self.assert_failures([])
 
     def test_backlog_must_be_bigger_than_zero(self):
         self.assertRaises(ValueError, Statistic(None).get_failure_paths, 0)
         self.assertRaises(ValueError, Statistic(None).dump_info, 0)
+        self.assertRaises(ValueError, Statistic(None).check_if_failed, object(), 0)
 
     def test_report_with_failure(self):
         self.results[0].failures.append(self.tests[0])

@@ -22,18 +22,17 @@ class Statistic(object):
         self.__runs.append(fail_paths)
         self.__save_data(self.__runs)
 
-    def get_failure_paths(self, backlog):
-        if backlog <= 0:
-            raise ValueError('Backlog must be bigger than zero')
+    def check_if_failed(self, obj, backlog):
+        restricted_set = self.__get_restricted_set(backlog)
+        address = nose.util.test_address(obj)
+        return any(address in run for run in restricted_set)
 
-        restricted_set = self.__runs[- backlog:]
+    def get_failure_paths(self, backlog):
+        restricted_set = self.__get_restricted_set(backlog)
         return [path for fail_paths in restricted_set for path, _, _ in fail_paths]
 
     def dump_info(self, backlog, file=sys.stdout):
-        if backlog <= 0:
-            raise ValueError('Backlog must be bigger than zero')
-
-        restricted_set = self.__runs[- backlog:]
+        restricted_set = self.__get_restricted_set(backlog)
         test_run_ids = {}
 
         for index, run in enumerate(self.__runs):
@@ -48,6 +47,12 @@ class Statistic(object):
             runbar = self.__get_runbar(test_run_ids[addr], backlog)
 
             print('[{}] {}:{}:{}'.format(runbar, path, module, call), file=file)
+
+    def __get_restricted_set(self, backlog):
+        if backlog <= 0:
+            raise ValueError('Backlog must be bigger than zero')
+
+        return self.__runs[- backlog:]
 
     def __get_runbar(self, test_run_ids, backlog):
         res = []
