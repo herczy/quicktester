@@ -3,7 +3,11 @@ import collections
 
 
 class GitError(Exception):
-    pass
+    def __init__(self, message, returncode, stderr):
+        super(GitError, self).__init__(message)
+
+        self.returncode = returncode
+        self.stderr = stderr
 
 
 class Changes(collections.Set):
@@ -30,8 +34,9 @@ class Changes(collections.Set):
                 yield line[3:]
 
     def __git_status(self):
-        try:
-            return subprocess.check_output(['git', 'status', '--porcelain']).decode()
+        process = subprocess.Popen(['git', 'status', '--porcelain'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stdout, stderr = process.communicate()
+        if process.returncode != 0:
+            raise GitError('git status command failed', process.returncode, stderr)
 
-        except subprocess.CalledProcessError as exc:
-            raise GitError(str(exc))
+        return stdout.decode()

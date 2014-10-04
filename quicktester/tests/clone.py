@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import unittest
 import os.path
 import tempfile
@@ -41,7 +43,22 @@ class _TemporaryClone(object):
             return f.read()
 
     def __execute(self, command):
-        subprocess.check_call(shlex.split(command))
+        process = subprocess.Popen(shlex.split(command), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stdout, stderr = process.communicate()
+
+        if process.returncode != 0:
+            self.__report_process_failure(command, stdout, stderr, process.returncode)
+            raise AssertionError('Expected return code of command {!r} to be 0, got {}'.format(command, process.returncode))
+
+        return stdout
+
+    def __report_process_failure(self, command, stdout, stderr, returncode):
+        print('Executed command:', command)
+        print('Return code:', returncode)
+        print('Stdout:')
+        print(stdout)
+        print('Stderr:')
+        print(stderr)
 
 
 class RepoTestCase(unittest.TestCase):
