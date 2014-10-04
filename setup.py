@@ -18,7 +18,7 @@ setup(
     packages=['quicktester', 'quicktester.plugin'],
     entry_points={
         'console_scripts': [
-            'quicktester-statistics = quicktester.statistic:quicktester_statistics'
+            'quicktester-statistics = quicktester.plugin.statistic:quicktester_statistics'
         ],
         'nose.plugins.0.10': [
             'statistic = quicktester.plugin.statistic:StatisticsPlugin',

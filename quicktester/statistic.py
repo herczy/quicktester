@@ -82,21 +82,3 @@ class Statistic(object):
         if self.__filename is not None:
             with open(self.__filename, 'w') as f:
                 json.dump(data, f)
-
-
-def quicktester_statistics():
-    import argparse
-
-    parser = argparse.ArgumentParser(
-        description='Statistic analizer for the quicktester nose plugins'
-    )
-
-    parser.add_argument('-f', '--file', default=DEFAULT_STATISTICS_FILE,
-                        help='Statistics file (default: %(default)s')
-    parser.add_argument('-b', '--backlog', default=10,
-                        help='Backlog to show (default: %(default)s')
-
-    options = parser.parse_args()
-
-    Statistic(options.file).dump_info(options.backlog)
-    return 0

@@ -1,3 +1,4 @@
+import argparse
 import nose
 
 from ..statistic import Statistic
@@ -38,3 +39,19 @@ class StatisticsPlugin(nose.plugins.Plugin):
 
     def finalize(self, result):
         Statistic(self.statfile).report_result(result)
+
+
+def quicktester_statistics():
+    parser = argparse.ArgumentParser(
+        description='Statistic analizer for the quicktester nose plugins'
+    )
+
+    parser.add_argument('-f', '--file', default=DEFAULT_STATISTICS_FILE,
+                        help='Statistics file (default: %(default)s')
+    parser.add_argument('-b', '--backlog', default=10,
+                        help='Backlog to show (default: %(default)s')
+
+    options = parser.parse_args()
+
+    Statistic(options.file).dump_info(options.backlog)
+    return 0
