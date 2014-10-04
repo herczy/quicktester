@@ -1,4 +1,4 @@
-PYTHON ?= $(shell which python)
+PYTHON ?= $(shell which python) -B
 NOSE = $(PYTHON) $(shell which nosetests)
 BEHAVE = $(PYTHON) $(shell which behave)
 
