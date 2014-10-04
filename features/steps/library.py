@@ -65,13 +65,9 @@ def append_env_path(environ, dest, path, sep=':'):
     environ[dest] = ':'.join(paths)
 
 
-def run(command, expected_rc=0):
-    env = dict(os.environ)
-    append_env_path(env, 'PYTHONPATH', git_repo_path)
-
-    print('Python executable:', sys.executable, file=sys.stderr)
+def run(command, expected_rc=0, env=None):
     process = subprocess.Popen(
-        [sys.executable, '-B'] + command,
+        command,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         env=env,
@@ -79,14 +75,23 @@ def run(command, expected_rc=0):
     )
 
     stdout, stderr = process.communicate()
-    if process.returncode != expected_rc:
-        print('----- BEGIN STDERR OUTPUT -----')
-        print(stderr)
-        print('----- END STDERR OUTPUT -----')
+    if expected_rc is not None:
+        if process.returncode != expected_rc:
+            print('----- BEGIN STDERR OUTPUT -----')
+            print(stderr)
+            print('----- END STDERR OUTPUT -----')
 
-    Assert.equal(expected_rc, process.returncode)
+        Assert.equal(expected_rc, process.returncode)
 
     return stdout, stderr
+
+
+def run_python(command, expected_rc=0):
+    env = dict(os.environ)
+    append_env_path(env, 'PYTHONPATH', git_repo_path)
+
+    print('Python executable:', sys.executable, file=sys.stderr)
+    return run([sys.executable, '-B'] + command, expected_rc=expected_rc, env=env)
 
 
 def run_tool(name, args, expected_rc=0):
@@ -97,7 +102,7 @@ def run_tool(name, args, expected_rc=0):
         args = shlex.split(args)
 
     path = os.path.join(tools_path, name + '.py')
-    return run([path] + args, expected_rc=expected_rc)
+    return run_python([path] + args, expected_rc=expected_rc)
 
 
 def run_quicktester_statistics(cli_args=None):
@@ -105,8 +110,29 @@ def run_quicktester_statistics(cli_args=None):
 
 
 def build_egg_file(dest):
-    run(['setup.py', 'bdist_egg', '--dist', dest])
+    run_python(['setup.py', 'bdist_egg', '--dist', dest])
 
 
 def run_nose(cli_args=None, expected_rc=0):
     return run_tool('nosetests', cli_args, expected_rc=expected_rc)[1]
+
+
+def init_git_repo():
+    run(['git', 'init', '.'])
+
+
+def commit_everything():
+    run(['git', 'add', '.'])
+    run(['git', 'commit', '-m', 'commit'])
+
+
+def process_nose_output(output):
+    tests = {}
+    for line in output.split('\n'):
+        m = re.match(r'([a-zA-Z0-9_]+) \(([a-zA-Z0-9_\.]*)\) ... ([^\s]*)', line)
+        if m is None:
+            continue
+
+        tests[m.group(2) + '.' + m.group(1)] = m.group(3)
+
+    return tests

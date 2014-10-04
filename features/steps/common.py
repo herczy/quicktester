@@ -20,9 +20,10 @@ def step_impl(context):
         context.environment.enter()
 
 
-@when('the test file "{filename}" is created')
-@when('the test file "{filename}" is changed')
-def step_impl(context, filename):
+@when('the {kind:w} file "{filename}" is created')
+@when('the {kind:w} file "{filename}" is changed')
+@given('the {kind:w} file "{filename}" is created')
+def step_impl(context, kind, filename):
     context.environment.write(filename, context.text)
 
 
