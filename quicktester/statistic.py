@@ -1,177 +1,63 @@
 from __future__ import print_function
 
 import sys
-import os.path
 import json
 import nose
-import datetime
-
-import sqlite3
-
-from . import util
-
-
-DEFAULT_STATISTICS_FILE = '.quicktester-statistics'
-
-
-TABLE_DEF_TESTS = '''
-    CREATE TABLE tests (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        path TEXT,
-        module TEXT,
-        call TEXT
-    );
-'''
-
-TABLE_DEF_RUN = '''
-    CREATE TABLE runs (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        runtime DATETIME
-    );
-'''
-
-TABLE_DEF_FAILURES = '''
-    CREATE TABLE failures (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        testid INTEGER REFERENCES tests (id),
-        runid INTEGER REFERENCES runs (id),
-        failtime DATETIME
-    );
-'''
 
 
 class Statistic(object):
     def __init__(self, filename):
         self.__filename = filename
-
-        self.__exists = os.path.isfile(self.__filename)
-        self.__sqlite = sqlite3.connect(self.__filename)
-        if not self.__exists:
-            self.__create_table()
-
-        self.__failed_tests = None
-
-    @property
-    def existed(self):
-        return self.__exists
+        self.__runs = self.__load_data()
 
     def report_result(self, result):
-        try:
-            runid = self.__get_new_runid()
+        fail_paths = []
 
-            for case, _ in result.errors:
-                self.__report_failure(case, runid)
+        for failure in result.failures:
+            fail_paths.append(nose.util.test_address(failure))
 
-            for case, _ in result.failures:
-                self.__report_failure(case, runid)
+        for error in result.errors:
+            fail_paths.append(nose.util.test_address(error))
 
-        except:
-            self.__sqlite.rollback()
+        self.__runs.append(fail_paths)
+        self.__save_data(self.__runs)
 
-        self.__sqlite.commit()
+    def get_failure_paths(self, backlog):
+        if backlog <= 0:
+            raise ValueError('Backlog must be bigger than zero')
 
-    def check_if_failed(self, case, max_runid):
-        if self.__failed_tests is None:
-            self.__load_failures()
+        restricted_set = self.__runs[- backlog:]
+        return [path for fail_paths in restricted_set for path, _, _ in fail_paths]
 
-        if not self.existed:
-            return True
+    def dump_info(self, backlog, file=sys.stdout):
+        if backlog <= 0:
+            raise ValueError('Backlog must be bigger than zero')
 
-        failid = self.__failed_tests.get(nose.util.test_address(case), None)
-        return self.__check_failid(failid, max_runid)
+        restricted_set = self.__runs[- backlog:]
+        test_run_ids = {}
 
-    def get_failure_paths(self, max_runid):
-        if self.__failed_tests is None:
-            self.__load_failures()
+        for index, run in enumerate(self.__runs):
+            for addr in run:
+                test_run_ids.setdefault(addr, set())
+                test_run_ids[addr].add(index - len(self.__runs) + backlog)
 
-        res = set()
-        for key, failid in self.__failed_tests.items():
-            path, module, call = key
-            if not self.__check_failid(failid, max_runid):
+        keys = list(test_run_ids.keys())
+        keys.sort()
+
+        for path, module, call in keys:
+            runbar = self.__get_runbar(test_run_ids[addr], backlog)
+
+            print('[{}] {}:{}:{}'.format(runbar, path, module, call), file=file)
+
+    def __get_runbar(self, test_run_ids, backlog):
+        res = []
+        top = len(self.__runs)
+        for index in range(backlog):
+            if top - backlog + index < 0:
+                res.append(' ')
                 continue
 
-            res.add(path)
-
-        return util.get_testing_paths(res)
-
-    def __check_failid(self, failid, max_runid):
-        return failid is not None and failid >= 1 - max_runid
-
-    def __create_table(self):
-        self.__sqlite.execute(TABLE_DEF_TESTS)
-        self.__sqlite.execute(TABLE_DEF_FAILURES)
-        self.__sqlite.execute(TABLE_DEF_RUN)
-        self.__sqlite.commit()
-
-    def __report_failure(self, case, runid):
-        self.__failed_tests = None
-
-        path, module, call = nose.util.test_address(case)
-        id = self.__get_testcase_id(case)
-        self.__sqlite.execute(
-            'INSERT INTO failures (testid, runid, failtime) VALUES (?, ?, ?)',
-            (id, runid, datetime.datetime.now())
-        )
-
-    def __get_testcase_id(self, case):
-        path, module, call = nose.util.test_address(case)
-
-        cur = self.__sqlite.execute(
-            'SELECT id FROM tests WHERE path = ? AND module = ? AND call = ?',
-            (path, module, call)
-        )
-
-        row = cur.fetchone()
-        if row is None:
-            cur = self.__sqlite.execute(
-                'INSERT INTO tests (path, module, call) VALUES (?, ?, ?)',
-                (path, module, call)
-            )
-            return cur.lastrowid
-
-        return row[0]
-
-    def __get_new_runid(self):
-        cur = self.__sqlite.execute(
-            'INSERT INTO runs (runtime) VALUES (?)',
-            (datetime.datetime.now(),)
-        )
-        return cur.lastrowid
-
-    def __get_last_runid(self):
-        cur = self.__sqlite.execute('SELECT id FROM runs ORDER BY id DESC LIMIT 1')
-        res = cur.fetchone()
-        if res is None:
-            return 0
-
-        return res[0]
-
-    def __load_failures(self):
-        self.__failed_tests = {}
-        cur = self.__sqlite.execute(
-            'SELECT path, module, call, max(runid) FROM failures JOIN tests ' +
-            'WHERE tests.id == failures.testid ' +
-            'GROUP BY path, module, call;'
-        )
-        topid = self.__get_last_runid()
-
-        for path, module, call, runid in cur:
-            key = (path, module, call)
-            new_run_id = runid - topid
-
-            if key not in self.__failed_tests:
-                self.__failed_tests[key] = new_run_id
-
-            else:
-                self.__failed_tests[key] = max(new_run_id, self.__failed_tests[key])
-
-    def __get_runbar(self, failed_runs, current_id, display_count=10):
-        res = []
-        for index in range(current_id - display_count, current_id + 1):
-            if index < 0:
-                res.append(' ')
-
-            elif index in failed_runs:
+            if index in test_run_ids:
                 res.append('F')
 
             else:
@@ -179,32 +65,20 @@ class Statistic(object):
 
         return ''.join(res)
 
-    def dump_info(self, stream=sys.stdout):
-        cur = self.__sqlite.execute('SELECT count(*) FROM runs')
-        runcount = cur.fetchone()[0]
+    def __load_data(self):
+        if self.__filename is None:
+            return []
 
-        cur = self.__sqlite.execute(
-            'SELECT path, module, call, failures.runid AS runid FROM failures JOIN tests ' +
-            'WHERE tests.id == failures.testid;'
-        )
+        with open(self.__filename, 'r') as f:
+            return json.load(f)
 
-        failures = {}
-
-        for path, module, call, runid in cur:
-            key = (path, module, call)
-            failures.setdefault(key, set())
-            failures[key].add(runid)
-
-        for key, failures in failures.items():
-            print(
-                '[{}] {}:{}:{}'.format(
-                    self.__get_runbar(failures, runcount), key[0], key[1], key[2]
-                ),
-                file=stream
-            )
+    def __save_data(self, data):
+        if self.__filename is not None:
+            with open(self.__filename, 'w') as f:
+                json.dump(data, f)
 
 
-def quicktest_statistics():
+def quicktester_statistics():
     import argparse
 
     parser = argparse.ArgumentParser(
@@ -213,8 +87,10 @@ def quicktest_statistics():
 
     parser.add_argument('-f', '--file', default=DEFAULT_STATISTICS_FILE,
                         help='Statistics file (default: %(default)s')
+    parser.add_argument('-b', '--backlog', default=10,
+                        help='Backlog to show (default: %(default)s')
 
     options = parser.parse_args()
 
-    Statistic(options.file).dump_info()
+    Statistic(options.file).dump_info(options.backlog)
     return 0
