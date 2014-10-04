@@ -3,6 +3,7 @@ from __future__ import print_function
 import sys
 import json
 import nose
+import os.path
 
 
 class Statistic(object):
@@ -71,7 +72,7 @@ class Statistic(object):
         return ''.join(res)
 
     def __load_data(self):
-        if self.__filename is None:
+        if self.__filename is None or not os.path.isfile(self.__filename):
             return []
 
         with open(self.__filename, 'r') as f:

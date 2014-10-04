@@ -106,6 +106,11 @@ class TestStatistics(unittest.TestCase):
 
             self.assertEqual(self.EXPECTED_OUTPUT, f.read())
 
+    def test_can_load_if_file_does_not_exist(self):
+        statistic = Statistic('/path/to/nonexistent/file')
+
+        self.assertListEqual([], statistic.get_failure_paths(1))
+
 
 class FakeResult(object):
     def __init__(self, tests):
