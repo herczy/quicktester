@@ -115,4 +115,4 @@ class GitChanges(nose.plugins.Plugin):
         if not changes:
             raise RuntimeError('No GIT changes found')
 
-        util.update_test_names(config, changes.get_changes())
+        util.update_test_names(config, changes)

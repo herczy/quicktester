@@ -1,52 +1,37 @@
-import sys
-import os.path
 import subprocess
+import collections
 
-from . import util
+
+class GitError(Exception):
+    pass
 
 
-class Changes(object):
-    __failed = False
+class Changes(collections.Set):
+    def __init__(self, git_status_func=None):
+        if git_status_func is None:
+            git_status_func = self.__git_status
 
-    def __init__(self):
-        self.__changed = set()
+        self.__changes = frozenset(self.__get_changes(git_status_func))
 
-        self.__collect_changes()
+        super(Changes, self).__init__()
 
-    def __bool__(self):
-        return bool(self.__changed)
+    def __len__(self):
+        return len(self.__changes)
 
-    def restrict_paths(self, paths):
-        '''Restrict the given paths to the changes.'''
+    def __contains__(self, item):
+        return item in self.__changes
 
-        if self.__failed:
-            return paths
+    def __iter__(self):
+        return iter(self.__changes)
 
-        return util.restrict(paths, self.__changed)
+    def __get_changes(self, git_status_func):
+        for line in git_status_func().split('\n'):
+            if line:
+                yield line[3:]
 
-    def get_changes(self):
-        if self.__failed:
-            return []
-
-        return list(self.__changed)
-
-    def __collect_changes(self):
+    def __git_status(self):
         try:
-            res = subprocess.check_output(['git', 'status', '--porcelain']).decode()
+            return subprocess.check_output(['git', 'status', '--porcelain']).decode()
 
-        except subprocess.CalledProcessError:
-            self.__failed = True
-            print('Warning: no git changes could be found', file=sys.stderr)
-            return
-
-        for line in res.split('\n'):
-            if not line:
-                continue
-
-            filename = line[3:]
-            if not filename.endswith('.py'):
-                continue
-
-            self.__changed.add(os.path.abspath(filename))
-
-        self.__changed = util.get_testing_paths(self.__changed)
+        except subprocess.CalledProcessError as exc:
+            raise GitError(str(exc))
