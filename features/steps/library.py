@@ -119,6 +119,8 @@ def run_nose(cli_args=None, expected_rc=0):
 
 def init_git_repo():
     run(['git', 'init', '.'])
+    run(['git', 'config', 'user.name', 'Viktor Hercinger'])
+    run(['git', 'config', 'user.email', 'hercinger.viktor@gmail.com'])
 
 
 def commit_everything():
