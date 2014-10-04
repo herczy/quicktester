@@ -35,8 +35,9 @@ def __make_assert_class():
         def nop():
             pass
 
-    assert_dict = {'maxDiff': None}
+    assert_dict = {}
     dummy = Dummy('nop')
+    dummy.maxDiff = None
     for attribute in dir(dummy):
         if not attribute.startswith('assert') or '_' in attribute:
             continue
@@ -82,7 +83,7 @@ def run(command, expected_rc=0):
 
     Assert.equal(expected_rc, process.returncode)
 
-    return stdout
+    return stdout, stderr
 
 
 def run_tool(name, args, expected_rc=0):
@@ -97,12 +98,12 @@ def run_tool(name, args, expected_rc=0):
 
 
 def run_quicktester_statistics(cli_args=None):
-    return run_tool('quicktester-statistics', cli_args)
+    return run_tool('quicktester-statistics', cli_args)[0]
 
 
 def ensure_plugins():
     run(['setup.py', 'egg_info'])
 
 
-def run_nose(expected_rc):
-    run_tool('nosetests', '', expected_rc=expected_rc)
+def run_nose(cli_args=None, expected_rc=0):
+    return run_tool('nosetests', cli_args, expected_rc=expected_rc)[1]

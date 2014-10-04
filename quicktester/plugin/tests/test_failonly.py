@@ -57,5 +57,8 @@ class FailOnlyPluginTest(PluginTestCase):
         fake1 = FakeTest('/path/to/module2', 'module', 'Test.func2')
         plugin = self.setup_plugin()
 
-        self.assertEqual(None, plugin.wantFunction(fake0))
+        self.assertEqual(True, plugin.wantFunction(fake0))
         self.assertEqual(False, plugin.wantFunction(fake1))
+
+        self.assertEqual(True, plugin.wantMethod(fake0))
+        self.assertEqual(False, plugin.wantMethod(fake1))

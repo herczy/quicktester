@@ -50,9 +50,7 @@ class FailOnlyPlugin(nose.plugins.Plugin):
             return False
 
     def wantFunction(self, func):
-        if not self.check_if_failed(func):
-            return False
+        print(func)
+        return self.check_if_failed(func)
 
-    def wantMethod(self, method):
-        if self.check_if_failed(method):
-            return True
+    wantMethod = wantFunction
