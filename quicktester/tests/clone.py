@@ -11,7 +11,7 @@ import functools
 import quicktester
 
 
-class _TemporaryClone(object):
+class TemporaryClone(object):
     name = None
     clone_repo = os.path.abspath(os.path.join(quicktester.__file__, '..', '..'))
 
@@ -69,7 +69,7 @@ class RepoTestCase(unittest.TestCase):
 
         @functools.wraps(self.__testfunc)
         def _wrapped_runner():
-            with _TemporaryClone() as clone:
+            with TemporaryClone() as clone:
                 self.clone = clone
                 try:
                     return self.__testfunc()
