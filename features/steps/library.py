@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import re
 import os.path
 import sys
@@ -67,8 +69,9 @@ def run(command, expected_rc=0):
     env = dict(os.environ)
     append_env_path(env, 'PYTHONPATH', git_repo_path)
 
+    print('Python executable:', sys.executable, file=sys.stderr)
     process = subprocess.Popen(
-        [sys.executable] + command,
+        [sys.executable, '-B'] + command,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         env=env,

@@ -31,14 +31,14 @@ class RunEnvironment(object):
         self.__directory = self.mkdtemp(prefix='quicktester-behave-')
         self.__working_dir = os.getcwd()
 
+    def __del__(self):
+        self.rmdtemp(self.__directory)
+
     def enter(self):
         os.chdir(self.__directory)
 
     def exit(self):
         os.chdir(self.__working_dir)
-
-    def __del__(self):
-        self.rmdtemp(self.__directory)
 
     def get_path(self, path):
         return os.path.join(self.__directory, path)
