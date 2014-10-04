@@ -19,8 +19,12 @@ class TemporaryClone(object):
         self.name = tempfile.mkdtemp(prefix='quickrunner-clone-')
         self.oldcwd = os.getcwd()
 
-        self.__execute('git clone "{0}" "{1}"'.format(self.clone_repo, self.name))
+        os.rmdir(self.name)
+        shutil.copytree(self.oldcwd, self.name)
+
         os.chdir(self.name)
+        self.__execute('git reset --hard')
+        self.__execute('git clean -dfx')
         return self
 
     def __exit__(self, *args):
