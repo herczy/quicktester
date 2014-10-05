@@ -8,6 +8,8 @@ import subprocess
 import unittest
 import pkg_resources
 
+from .assertfunc import Assert
+
 tools_path = os.path.abspath(os.path.join(__file__, '..', '..', '..', 'tools'))
 git_repo_path = os.path.abspath(os.path.join(__file__, '..', '..', '..', '..'))
 
@@ -17,47 +19,6 @@ try:
 
 finally:
     sys.path.remove(git_repo_path)
-
-
-def __make_assert_class():
-    caps = re.compile('([A-Z])')
-    prefix = 'assert_'
-
-    def make_pep8_name(name):
-        sub = caps.sub(lambda m: '_' + m.groups()[0].lower(), name)
-        return sub[len(prefix):]
-
-    def make_caller(obj, name):
-        def func(cls, *args, **kwargs):
-            return getattr(obj, name)(*args, **kwargs)
-
-        return classmethod(func)
-
-    class Dummy(unittest.TestCase):
-        def nop():
-            pass
-
-    assert_dict = {}
-    dummy = Dummy('nop')
-    dummy.maxDiff = None
-    for attribute in dir(dummy):
-        if not attribute.startswith('assert') or '_' in attribute:
-            continue
-
-        assert_dict[make_pep8_name(attribute)] = make_caller(dummy, attribute)
-
-    return type('Assert', (object,), assert_dict)
-
-
-Assert = __make_assert_class()
-del __make_assert_class
-
-
-def verify_context(context, attribute):
-    Assert.true(
-        hasattr(context, attribute), 
-        msg='The {!r} context attribute is missing'.format(attribute)
-    )
 
 
 def append_env_path(environ, dest, path, sep=':'):
