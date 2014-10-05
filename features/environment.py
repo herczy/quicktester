@@ -1,4 +1,4 @@
-from steps import environment
+from steps.library import environment
 from quicktester.tests.clone import TemporaryClone
 
 

@@ -8,8 +8,8 @@ import subprocess
 import unittest
 import pkg_resources
 
-tools_path = os.path.abspath(os.path.join(__file__, '..', '..', 'tools'))
-git_repo_path = os.path.abspath(os.path.join(__file__, '..', '..', '..'))
+tools_path = os.path.abspath(os.path.join(__file__, '..', '..', '..', 'tools'))
+git_repo_path = os.path.abspath(os.path.join(__file__, '..', '..', '..', '..'))
 
 try:
     sys.path.insert(0, git_repo_path)
@@ -51,6 +51,13 @@ def __make_assert_class():
 
 Assert = __make_assert_class()
 del __make_assert_class
+
+
+def verify_context(context, attribute):
+    Assert.true(
+        hasattr(context, attribute), 
+        msg='The {!r} context attribute is missing'.format(attribute)
+    )
 
 
 def append_env_path(environ, dest, path, sep=':'):
