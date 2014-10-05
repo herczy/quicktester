@@ -10,6 +10,12 @@ from .assertfunc import Assert
 from .path import tools_path, git_repo_path
 from .verify import verify_context
 
+if sys.version_info.major == 2:
+    string_types = (str, unicode)
+
+else:
+    string_types = str
+
 
 def ident(text, ident=4):
     res = []
@@ -208,7 +214,7 @@ class Runner(object):
         return [result for result in self.results if result.command.group == group]
 
     def get_result(self, index, group=None):
-        if isinstance(index, str):
+        if isinstance(index, string_types):
             if not index in self.HUMAN_READABLE_INDEXES:
                 raise AssertionError("Unknown human-readable index {!r}".format(index))
 
