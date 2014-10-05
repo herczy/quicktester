@@ -37,7 +37,7 @@ Feature: git-changes plugin
       And all changes are committed
 
   Scenario: no changes are in the repository
-     When nose is run for the git changes
+     When the command "nosetests -v --git-changes" is executed
      Then no tests are run
 
   Scenario: changing a test file runs only the test file
@@ -52,7 +52,7 @@ Feature: git-changes plugin
               def test_passing(self):
                   self.assertEqual(1, 1)
           """
-      And nose is run for the git changes
+      And the command "nosetests -v --git-changes" is executed
      Then the following tests are run:
           """
           example.tests.test_example.TestExample.test_example
@@ -65,7 +65,7 @@ Feature: git-changes plugin
           # Some module
           # Some change
           """
-      And nose is run for the git changes
+      And the command "nosetests -v --git-changes" is executed
      Then the following tests are run:
           """
           example.tests.test_example.TestExample.test_example

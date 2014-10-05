@@ -20,7 +20,7 @@ Feature: fail-only plugin
               def test_passing(self):
                   self.assertEqual(1, 1)
           """
-      And nose is run and fails
+      And the command "nosetests" is executed
       And the test file "example/tests/test_example.py" is changed:
           """
           import unittest
@@ -32,7 +32,7 @@ Feature: fail-only plugin
               def test_passing(self):
                   self.assertEqual(1, 1)
           """
-      And nose is run again with the failing tests and passes
+      And the command "nosetests -v --run-count 1" is executed
      Then only the "example.tests.test_example.TestExample.test_example" tests has beed rerun
 
   Scenario: if the test failed on the first run of four and we only the last three runs, we dont re-run the test
@@ -44,7 +44,7 @@ Feature: fail-only plugin
               def test_example(self):
                   self.assertEqual(0, 1)
           """
-      And nose is run and fails
+      And the command "nosetests" is executed
       And the test file "example/tests/test_example.py" is changed:
           """
           import unittest
@@ -53,9 +53,9 @@ Feature: fail-only plugin
               def test_example(self):
                   self.assertEqual(1, 1)
           """
-      And nose is run again 2 times and passes each time
-      And nose is run again with the failing tests in the last 4 runs and passes
-     Then only the "example.tests.test_example.TestExample.test_example" tests has beed rerun
+      And the command "nosetests -v" is executed 3 times
+      And the command "nosetests -v --run-count 3" is executed
+     Then no tests are run
 
   Scenario: if the test failed on the first run of three and we check the last three runs, we re-run the test
      When the test file "example/tests/test_example.py" is created:
@@ -66,7 +66,7 @@ Feature: fail-only plugin
               def test_example(self):
                   self.assertEqual(0, 1)
           """
-      And nose is run and fails
+      And the command "nosetests -v" is executed 3 times
       And the test file "example/tests/test_example.py" is changed:
           """
           import unittest
@@ -75,6 +75,6 @@ Feature: fail-only plugin
               def test_example(self):
                   self.assertEqual(1, 1)
           """
-      And nose is run again 2 times and passes each time
-      And nose is run again with the failing tests in the last 3 runs and passes
+      And the command "nosetests -v" is executed 2 times
+      And the command "nosetests -v --run-count 3" is executed
      Then only the "example.tests.test_example.TestExample.test_example" tests has beed rerun

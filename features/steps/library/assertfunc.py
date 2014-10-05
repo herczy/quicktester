@@ -28,7 +28,11 @@ def __make_assert_class():
         if not attribute.startswith('assert') or '_' in attribute:
             continue
 
-        assert_dict[make_pep8_name(attribute)] = make_caller(dummy, attribute)
+        pep8_name = make_pep8_name(attribute)
+        if pep8_name == 'in':
+            pep8_name = '_in'
+
+        assert_dict[pep8_name] = make_caller(dummy, attribute)
 
     return type('Assert', (object,), assert_dict)
 

@@ -1,100 +1,12 @@
 from __future__ import print_function
 
 import re
-import os.path
 import sys
-import shlex
-import subprocess
-import unittest
-import pkg_resources
 
 from .assertfunc import Assert
 from .verify import *
-
-tools_path = os.path.abspath(os.path.join(__file__, '..', '..', '..', 'tools'))
-git_repo_path = os.path.abspath(os.path.join(__file__, '..', '..', '..', '..'))
-
-try:
-    sys.path.insert(0, git_repo_path)
-    import quicktester
-
-finally:
-    sys.path.remove(git_repo_path)
-
-
-def append_env_path(environ, dest, path, sep=':'):
-    paths = environ.get(dest, None)
-    if paths is None:
-        paths = []
-
-    else:
-        paths = paths.split(sep)
-
-    paths.append(path)
-    environ[dest] = ':'.join(paths)
-
-
-def run(command, expected_rc=0, env=None):
-    process = subprocess.Popen(
-        command,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        env=env,
-        universal_newlines=True
-    )
-
-    stdout, stderr = process.communicate()
-    if expected_rc is not None:
-        if process.returncode != expected_rc:
-            print('----- BEGIN STDERR OUTPUT -----')
-            print(stderr)
-            print('----- END STDERR OUTPUT -----')
-
-        Assert.equal(expected_rc, process.returncode)
-
-    return stdout, stderr
-
-
-def run_python(command, expected_rc=0):
-    env = dict(os.environ)
-    append_env_path(env, 'PYTHONPATH', git_repo_path)
-
-    print('Python executable:', sys.executable, file=sys.stderr)
-    return run([sys.executable, '-B'] + command, expected_rc=expected_rc, env=env)
-
-
-def run_tool(name, args, expected_rc=0):
-    if args is None:
-        args = []
-
-    else:
-        args = shlex.split(args)
-
-    path = os.path.join(tools_path, name + '.py')
-    return run_python([path] + args, expected_rc=expected_rc)
-
-
-def run_quicktester_statistics(cli_args=None):
-    return run_tool('quicktester-statistics', cli_args)[0]
-
-
-def build_egg_file(dest):
-    run_python(['setup.py', 'bdist_egg', '--dist', dest])
-
-
-def run_nose(cli_args=None, expected_rc=0):
-    return run_tool('nosetests', cli_args, expected_rc=expected_rc)[1]
-
-
-def init_git_repo():
-    run(['git', 'init', '.'])
-    run(['git', 'config', 'user.name', 'Viktor Hercinger'])
-    run(['git', 'config', 'user.email', 'hercinger.viktor@gmail.com'])
-
-
-def commit_everything():
-    run(['git', 'add', '.'])
-    run(['git', 'commit', '-m', 'commit'])
+from .path import *
+from . import runner
 
 
 def process_nose_output(output):

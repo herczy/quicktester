@@ -13,15 +13,9 @@ def step_impl(context, package):
 @given('the plugins are installed')
 def step_impl(context):
     library.verify_environment(context)
+    library.runner.verify_runner(context)
 
-    path = os.getcwd()
-
-    context.environment.exit()
-    try:
-        library.build_egg_file(path)
-
-    finally:
-        context.environment.enter()
+    library.runner.EggBuildCommand(os.getcwd(), context.environment).execute()
 
 
 @when('the {kind:w} file "{filename}" is created')
@@ -33,10 +27,66 @@ def step_impl(context, kind, filename):
     context.environment.write(filename, context.text)
 
 
-@when('nose is run and {state:w}')
-@when('nose is run again and {state:w}')
-@when('nose is run again {count:d} times and {state:w} each time')
-def step_impl(context, state, count=1):
-    state = (state == 'passes')
-    for _ in range(count):
-        library.run_nose(expected_rc=(0 if state else 1))
+@when('the command "{command}" is executed')
+@when('the command "{command}" is executed {repeat:d} times')
+def step_impl(context, command, repeat=1):
+    library.runner.execute_command(context, command, repeat=repeat)
+
+
+@then('the command does not print anything')
+def step_impl(context):
+    library.runner.assert_stdout(context, '', 'last')
+    library.runner.assert_stderr(context, '', 'last')
+
+
+@then('the command passes')
+def step_impl(context):
+    library.runner.assert_return_code(context, 0, 'last')
+
+
+@then('the {index:w} executed command prints the following')
+def step_impl(context, index):
+    library.runner.assert_stdout(context, context.text, 'last')
+    library.runner.assert_stderr(context, '', 'last')
+
+
+@then('the {index:w} executed command passes')
+def step_impl(context, index):
+    library.runner.assert_return_code(context, 0, index)
+
+
+@then('only the "{fullname}" tests has beed rerun')
+def step_impl(context, fullname):
+    result = library.runner.get_result(context, 'last', group='tool')
+
+    tests = library.process_nose_output(result.stderr)
+    library.Assert.set_equal({fullname}, set(tests.keys()))
+
+
+@given('a new repository is initialized')
+def step_impl(context):
+    library.runner.execute_command(context, 'git-init')
+
+
+@given('all changes are committed')
+def step_impl(context):
+    library.runner.execute_command(context, 'git-commit')
+
+
+@then('no tests are run')
+def step_impl(context):
+    result = library.runner.get_result(context, 'last', group='tool')
+
+    tests = library.process_nose_output(result.stderr)
+    library.Assert.list_equal([], list(tests.keys()))
+
+
+@then('the following tests are run')
+def step_impl(context):
+    result = library.runner.get_result(context, 'last', group='tool')
+
+    tests = library.process_nose_output(result.stderr)
+    library.Assert.set_equal(
+        set(context.text.split('\n')),
+        set(tests.keys())
+    )
