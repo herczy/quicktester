@@ -18,12 +18,16 @@ def step_impl(context):
 
 @then('no tests are run')
 def step_impl(context):
+    library.verify_context(context, 'nose_output')
+
     tests = library.process_nose_output(context.nose_output)
     library.Assert.list_equal([], list(tests.keys()))
 
 
 @then('the following tests are run')
 def step_impl(context):
+    library.verify_context(context, 'nose_output')
+
     tests = library.process_nose_output(context.nose_output)
     library.Assert.set_equal(
         set(context.text.split('\n')),

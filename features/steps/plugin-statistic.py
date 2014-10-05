@@ -8,6 +8,8 @@ def step_impl(context):
 
 @then('it does not print anything')
 def step_impl(context):
+    library.verify_context(context, 'cli_tool_stdout')
+
     library.Assert.equal('', context.cli_tool_stdout.strip())
 
 
@@ -18,4 +20,6 @@ def step_impl(context, count):
 
 @then('it prints the following')
 def step_impl(context):
+    library.verify_context(context, 'cli_tool_stdout')
+
     library.Assert.equal(context.text.rstrip(), context.cli_tool_stdout.rstrip())

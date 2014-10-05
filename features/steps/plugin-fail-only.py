@@ -11,5 +11,7 @@ def step_impl(context, run_count=1):
 
 @then('only the "{fullname}" tests has beed rerun')
 def step_impl(context, fullname):
+    library.verify_context(context, 'nose_output')
+
     tests = library.process_nose_output(context.nose_output)
     library.Assert.list_equal([fullname], list(tests.keys()))

@@ -4,12 +4,16 @@ import library
 
 @given('an empty package "{package:w}"')
 def step_impl(context, package):
+    library.verify_environment(context)
+
     context.environment.write('{}/__init__.py'.format(package), '')
     context.environment.write('{}/tests/__init__.py'.format(package), '')
 
 
 @given('the plugins are installed')
 def step_impl(context):
+    library.verify_environment(context)
+
     path = os.getcwd()
 
     context.environment.exit()
@@ -24,6 +28,8 @@ def step_impl(context):
 @when('the {kind:w} file "{filename}" is changed')
 @given('the {kind:w} file "{filename}" is created')
 def step_impl(context, kind, filename):
+    library.verify_environment(context)
+
     context.environment.write(filename, context.text)
 
 

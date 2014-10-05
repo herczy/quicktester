@@ -9,6 +9,7 @@ import unittest
 import pkg_resources
 
 from .assertfunc import Assert
+from .verify import *
 
 tools_path = os.path.abspath(os.path.join(__file__, '..', '..', '..', 'tools'))
 git_repo_path = os.path.abspath(os.path.join(__file__, '..', '..', '..', '..'))
