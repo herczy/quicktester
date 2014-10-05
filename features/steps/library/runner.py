@@ -3,6 +3,7 @@ from __future__ import print_function
 import os.path
 import sys
 import shlex
+import shutil
 import subprocess
 
 from .assertfunc import Assert
@@ -129,6 +130,8 @@ class EggBuildCommand(PythonCommand):
         self.__environ.exit()
         try:
             res = super(EggBuildCommand, self).execute()
+            shutil.rmtree('build', ignore_errors=True)
+            shutil.rmtree('quicktester.egg-info', ignore_errors=True)
 
         finally:
             self.__environ.enter()
@@ -140,8 +143,13 @@ class EggBuildCommand(PythonCommand):
         result = ToolCommand(['get-installed-nose-plugins']).execute()
         plugins = set(plugin.split(' = ', 1)[0] for plugin in result.stdout.strip().split('\n'))
 
-        for expected_plugin in {'statistic', 'fail-only', 'git-change'}:
-            Assert._in(expected_plugin, plugins)
+        try:
+            for expected_plugin in {'statistic', 'fail-only', 'git-change'}:
+                Assert._in(expected_plugin, plugins)
+
+        except:
+            result.dump()
+            raise
 
 
 class CustomCommand(Command):
