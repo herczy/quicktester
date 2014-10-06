@@ -48,6 +48,22 @@ Feature: git-changes plugin
      When the command "nosetests -v --git-changes" is executed
      Then no tests are run
 
+  Scenario: run tests in newly created modules:
+    Given an empty package "newpackage"
+      And the test file "newpackage/test_example.py" is created:
+          """
+          import unittest
+
+          class TestExample(unittest.TestCase):
+              def test_mytest(self):
+                  assert 0
+          """
+     When the command "nosetests -v --git-changes" is executed
+     Then the following tests are run:
+          """
+          newpackage.test_example.TestExample.test_mytest
+          """
+
   Scenario: changing a test file runs only the test file
      When the test file "example/tests/test_example.py" is changed:
           """

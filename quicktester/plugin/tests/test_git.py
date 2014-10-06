@@ -56,10 +56,13 @@ class TestGitChangesPlugin(PluginTestCase):
         self.assertEqual(None, plugin.wantFile('quicktester/plugin/tests/test_statistic.py'))
         self.assertEqual(False, plugin.wantFile('quicktester/tests/test_statistic.py'))
 
-    def test_ignore_non_python_files(self):
-        plugin = self.prepare_with_changes({'junk.txt'})
+    def test_ignore_non_python_files_or_directories(self):
+        plugin = self.prepare_with_changes({'junk.txt', 'quicktester/tests'})
 
-        self.assertEqual(False, plugin.wantDirectory('quicktester'))
+        self.assertEqual(None, plugin.wantDirectory('quicktester'))
+        self.assertEqual(None, plugin.wantDirectory('quicktester/tests'))
+        self.assertEqual(None, plugin.wantFile('quicktester/tests/test_git.py'))
+        self.assertEqual(False, plugin.wantFile('quicktester/test_git.py'))
 
 
 class FakeGitChangesPlugin(GitChangesPlugin):
