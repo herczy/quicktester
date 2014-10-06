@@ -81,7 +81,7 @@ class SystemCommand(Command):
 
         stdout, stderr = process.communicate()
 
-        return Result(self, process.returncode, stdout, stderr)
+        return Result(self, process.returncode, stdout.rstrip(), stderr.rstrip())
 
     def __repr__(self):
         cmd = ' '.join(repr(arg) for arg in self.command)
@@ -254,31 +254,23 @@ def get_result(context, index, group=None):
     return context.runner.get_result(index, group=group)
 
 
-def assert_return_code(context, expected_return_code, index, group=None):
+def __assert_result(context, attribute, expected, index, group=None):
     result = get_result(context, index, group=group)
     try:
-        Assert.equal(expected_return_code, result.returncode)
+        Assert.equal(expected, getattr(result, attribute))
 
     except:
         result.dump()
         raise
+
+
+def assert_return_code(context, expected_return_code, index, group=None):
+    __assert_result(context, 'returncode', expected_return_code, index, group=group)
 
 
 def assert_stdout(context, expected_stdout, index, group=None):
-    result = get_result(context, index, group=group)
-    try:
-        Assert.equal(expected_stdout, result.stdout.rstrip())
-
-    except:
-        result.dump()
-        raise
+    __assert_result(context, 'stdout', expected_stdout, index, group=group)
 
 
 def assert_stderr(context, expected_stderr, index, group=None):
-    result = get_result(context, index, group=group)
-    try:
-        Assert.equal(expected_stderr, result.stderr.rstrip())
-
-    except:
-        result.dump()
-        raise
+    __assert_result(context, 'stderr', expected_stderr, index, group=group)
