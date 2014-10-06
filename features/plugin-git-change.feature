@@ -40,6 +40,14 @@ Feature: git-changes plugin
      When the command "nosetests -v --git-changes" is executed
      Then no tests are run
 
+  Scenario: ignoring non-python files
+    Given the root file "junk.txt" is created:
+          """
+          Some irrelevant content
+          """
+     When the command "nosetests -v --git-changes" is executed
+     Then no tests are run
+
   Scenario: changing a test file runs only the test file
      When the test file "example/tests/test_example.py" is changed:
           """
