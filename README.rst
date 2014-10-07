@@ -4,7 +4,21 @@
 quickrunner
 ===========
 
-Nose plugins that will only run "relevant tests"
+Nose plugins that will only run "relevant tests". A relevant test may be a
+test associated with a git change, a previous failure, etc. The ultimate goal
+is to help you, the developer to speed up the TDD's RED-GREEN-REFACTOR cycle.
+
+In order to do this, the ``quickrunner`` module gives you a number of tools:
+
+* the ``git-changes`` plugin lets you rerun tests possibly relevant to the
+  currently changed modules.
+
+* the ``fail-only`` plugin will only re-run tests that have failed in the
+  previous run(s).
+
+* the ``quickfix`` plugin gives nose the ability to output a file in the
+  quickfix format. This can be used with ``vim`` which can parse files like
+  this and jump to the relevant failure points.
 
 Installation
 ------------
@@ -15,8 +29,30 @@ To install these plugins, run
 
   $ python setup.py install
 
+or if you want to install it locally,
+
+::
+
+  $ python setup.py install --user
+
 Usage
------
+=====
+
+The quicktester-statistics CLI tool
+-----------------------------------
+
+The ``quicktester-statistics`` tool can be used to list the states of previously
+failed tests up to a given number of runs. E.g. the statistics for the last 4 runs:
+
+::
+
+  $ quicktester-statistics -b 4
+  [..F.] package/tests/test_module.py:package.tests.test_module:TestClass.test_case
+
+Where the test has failed before the last run.
+
+Run tests according to the git changes
+--------------------------------------
 
 To run only tests relevant to the git changes, use:
 
@@ -24,17 +60,60 @@ To run only tests relevant to the git changes, use:
 
   $ nosetests --git-changes
 
+The ``git-changes`` plugin expects that the tests are in the same directory as the
+modules themselves, i.e.
+
+::
+
+  + package
+  |-- subpackage
+  |   |-- tests
+  |   |   `-- test_something.py
+  |   `-- something.py
+  |-- tests
+  |   `-- test_module.py
+  `-- module.py
+
+Otherwise all tests may not run.
+
+Run only previously failed tests
+--------------------------------
+
 To run tests that have failed thrice in the last runs, use:
 
 ::
 
   $ nosetests --run-count 3
 
-Test statistics
----------------
+Create quickfix file
+--------------------
 
-To get the test run statistics, use:
+To create a quickfix file with the exception trace positions, use:
 
 ::
 
-  $ quicktester-statistics
+  $ nosetests -Q /path/to/quickfix
+
+This will only list exception trace positions relative to the current
+working directory (i.e. it will not list positions in the ``os`` module).
+To get the 'irrelevant' positions too, use the ``--qf-irrelevant`` option:
+
+::
+
+  $ nosetests -Q /path/to/quickfix --qf-irrelevant
+
+Usage in vi
+...........
+
+There are multiple ways to use this plugin, the simplest being:
+
+::
+
+  :cex system('nosetests -Q /tmp/quickfix')
+
+But this will print nothing. A better ``vim`` script may be:
+
+::
+
+  execute ':!nosetests -Q /tmp/nose-quickfix --git-changes'
+  cfile /tmp/nose-quickfix
