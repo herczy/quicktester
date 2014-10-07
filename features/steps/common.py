@@ -90,3 +90,18 @@ def step_impl(context):
         set(context.text.split('\n')),
         set(tests.keys())
     )
+
+
+@then('the quickfix file has the following content')
+def step_impl(context):
+    library.runner.assert_tempfile(context, 'QUICKFIX')
+
+
+@then('the quickfix file contains the following line')
+def step_impl(context):
+    library.runner.assert_tempfile_contains(context, 'QUICKFIX')
+
+
+@then('there are some other lines too')
+def step_impl(context):
+    library.runner.assert_tempfile_contains_others(context, 'QUICKFIX')

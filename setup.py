@@ -29,6 +29,7 @@ setup(
             'statistic = quicktester.plugin.statistic:StatisticsPlugin',
             'fail-only = quicktester.plugin.failonly:FailOnlyPlugin',
             'git-change = quicktester.plugin.git:GitChangesPlugin',
+            'quickfix = quicktester.plugin.quickfix:QuickFixPlugin',
         ],
     },
     requires=requires

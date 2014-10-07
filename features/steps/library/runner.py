@@ -5,6 +5,8 @@ import sys
 import shlex
 import shutil
 import subprocess
+import re
+import tempfile
 
 from .assertfunc import Assert
 from .path import tools_path, git_repo_path
@@ -150,7 +152,7 @@ class EggBuildCommand(PythonCommand):
         plugins = set(plugin.split(' = ', 1)[0] for plugin in result.stdout.strip().split('\n'))
 
         try:
-            for expected_plugin in {'statistic', 'fail-only', 'git-change'}:
+            for expected_plugin in {'statistic', 'fail-only', 'git-change', 'quickfix'}:
                 Assert._in(expected_plugin, plugins)
 
         except:
@@ -198,9 +200,11 @@ class Runner(object):
     }
 
     DEFAULT_COMMAND_CLASS = SystemCommand
+    TEMPFILE_SUBSTITUTION_PATTERN = re.compile(r'\$\(([a-zA-Z0-9_]+)\)')
 
     def __init__(self):
         self.results = []
+        self.tempfiles = {}
 
     def execute(self, command):
         result = command.execute()
@@ -229,6 +233,15 @@ class Runner(object):
 
         return command_cls(command, *args, **kwargs)
 
+    def make_tempfile_replacements(self, command):
+        return self.TEMPFILE_SUBSTITUTION_PATTERN.sub(self.__replace_tempfile, command)
+
+    def __replace_tempfile(self, match):
+        name = match.group(1)
+        self.tempfiles[name] = tempfile.NamedTemporaryFile(prefix='quicktester-behave-')
+
+        return self.tempfiles[name].name
+
 
 def verify_runner(context):
     verify_context(context, 'runner', msg='initialize_runner_context() has not been yet called')
@@ -242,6 +255,7 @@ def execute_command(context, command, repeat=1):
     verify_runner(context)
 
     if not isinstance(command, Command):
+        command = context.runner.make_tempfile_replacements(command)
         command = Runner.create_command(command)
 
     for _ in range(repeat):
@@ -274,3 +288,42 @@ def assert_stdout(context, expected_stdout, index, group=None):
 
 def assert_stderr(context, expected_stderr, index, group=None):
     __assert_result(context, 'stderr', expected_stderr, index, group=group)
+
+
+def __make_file_assertion(func):
+    def __asserter(context, filekey):
+        verify_runner(context)
+
+        with open(context.runner.tempfiles[filekey].name) as f:
+            func(context, f.read().rstrip())
+
+    return __asserter
+
+
+@__make_file_assertion
+def assert_tempfile(context, actual):
+    Assert.equal(context.text, actual)
+
+
+@__make_file_assertion
+def assert_tempfile_contains(context, actual):
+    expected_lines = set(context.text.split('\n'))
+    actual_lines = set(actual.split('\n'))
+
+    Assert.set_equal(expected_lines, expected_lines.intersection(actual_lines))
+    context.previous_expected = expected_lines
+
+
+@__make_file_assertion
+def assert_tempfile_contains_others(context, actual):
+    verify_runner(context)
+    verify_context(context, 'previous_expected')
+
+    previous_lines = context.previous_expected
+    actual_lines = set(actual.split('\n'))
+
+    Assert.not_equal(
+        set(),
+        actual_lines - previous_lines,
+        msg='The only lines in the file are the ones in the previous step.'
+    )
