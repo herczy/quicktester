@@ -1,6 +1,7 @@
 import tempfile
 import unittest
-import json
+import os.path
+import shutil
 
 from ..statistic import Statistic
 
@@ -15,8 +16,8 @@ class TestStatistics(unittest.TestCase):
         return statistic
 
     def assert_failures(self, expected, backlog=1):
-        self.assertListEqual(
-            expected,
+        self.assertSetEqual(
+            set(expected),
             self.initialize_statistic().get_failure_paths(backlog)
         )
 
@@ -53,7 +54,7 @@ class TestStatistics(unittest.TestCase):
     def test_backlog_must_be_bigger_than_zero(self):
         self.assertRaises(ValueError, Statistic(None).get_failure_paths, 0)
         self.assertRaises(ValueError, Statistic(None).dump_info, 0)
-        self.assertRaises(ValueError, Statistic(None).check_if_failed, object(), 0)
+        self.assertRaises(ValueError, Statistic(None).check_if_failed, FakeTest('', '', ''), 0)
 
     def test_report_with_failure(self):
         self.results[0].failures.append((self.tests[0], None))
@@ -73,15 +74,12 @@ class TestStatistics(unittest.TestCase):
         self.assert_failures(['/path/a/b'], backlog=2)
 
     def test_persistence(self):
-        with tempfile.NamedTemporaryFile(mode='w') as f:
-            f.write('[]')
-            f.flush()
-
+        with TemporaryStatisticsFile() as filename:
             self.results[0].errors.append((self.tests[0], ''))
-            Statistic(f.name).report_result(self.results[0])
+            Statistic(filename).report_result(self.results[0])
 
-            statistic = Statistic(f.name)
-            self.assertListEqual(['/path/a/b'], statistic.get_failure_paths(1))
+            statistic = Statistic(filename)
+            self.assertSetEqual({'/path/a/b'}, statistic.get_failure_paths(1))
 
     EXPECTED_OUTPUT = '''\
 [       .FF] a/b:a.b:Test.func
@@ -111,9 +109,8 @@ class TestStatistics(unittest.TestCase):
             self.assertEqual(self.EXPECTED_OUTPUT, f.read())
 
     def test_can_load_if_file_does_not_exist(self):
-        statistic = Statistic('/path/to/nonexistent/file')
-
-        self.assertListEqual([], statistic.get_failure_paths(1))
+        with TemporaryStatisticsFile() as filename:
+            self.assertSetEqual(set(), Statistic(filename).get_failure_paths(1))
 
 
 class FakeResult(object):
@@ -129,3 +126,12 @@ class FakeTest(object):
 
     def address(self):
         return self.__address
+
+
+class TemporaryStatisticsFile(object):
+    def __enter__(self):
+        self.__tempdir = tempfile.mkdtemp(prefix='quicktester.')
+        return os.path.join(self.__tempdir, 'db')
+
+    def __exit__(self, *args):
+        shutil.rmtree(self.__tempdir, ignore_errors=True)

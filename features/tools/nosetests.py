@@ -3,7 +3,6 @@ from __future__ import print_function
 import sys
 sys.path.insert(0, '.')
 
-import json
 import os.path
 import pprint
 
@@ -24,12 +23,6 @@ print('Working dir:', os.getcwd(), file=sys.stderr)
 
 plugins = pprint.pformat(list(ep.name for ep in iter_entry_points('nose.plugins.0.10')))
 print('Installed nose plugins (0.10):', plugins, file=sys.stderr)
-
-from quicktester.plugin import DEFAULT_STATISTICS_FILE
-if os.path.isfile(DEFAULT_STATISTICS_FILE):
-    print('Statistics file:', file=sys.stderr)
-    with open(DEFAULT_STATISTICS_FILE) as f:
-        pprint.pprint(json.load(f), stream=sys.stderr)
 
 print('----- END INFO -----', file=sys.stderr)
 

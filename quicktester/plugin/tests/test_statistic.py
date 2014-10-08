@@ -1,10 +1,11 @@
+import os.path
 import tempfile
 
 from . import PluginTestCase
 
 from ..statistic import StatisticsPlugin
 from ...statistic import Statistic
-from ...tests.test_statistic import FakeResult, FakeTest
+from ...tests.test_statistic import FakeResult, FakeTest, TemporaryStatisticsFile
 from .. import DEFAULT_STATISTICS_FILE
 
 
@@ -32,11 +33,8 @@ class StatisticsPluginTest(PluginTestCase):
         result = FakeResult([FakeTest('/path/to/module', 'module', 'Test.func')])
         result.errors.append((result.tests[0], ''))
 
-        with tempfile.NamedTemporaryFile(mode='w+') as f:
-            f.write('[]')
-            f.flush()
-
-            plugin = self.get_configured_plugin('--statistics-file "{}"'.format(f.name))
+        with TemporaryStatisticsFile() as filename:
+            plugin = self.get_configured_plugin('--statistics-file "{}"'.format(filename))
             plugin.finalize(result)
 
-            self.assertEqual(['/path/to/module'], Statistic(f.name).get_failure_paths(1))
+            self.assertEqual({'/path/to/module'}, Statistic(filename).get_failure_paths(1))
