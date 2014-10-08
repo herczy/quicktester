@@ -112,6 +112,20 @@ class TestStatistics(unittest.TestCase):
         with TemporaryStatisticsFile() as filename:
             self.assertSetEqual(set(), Statistic(filename).get_failure_paths(1))
 
+    def test_load_legacy_format_with_no_failures_as_the_first_run(self):
+        with tempfile.NamedTemporaryFile(prefix='quicktester.', mode='w') as f:
+            f.write('[[], [["a/b", "a.b", "TestCase.test_func"]]]')
+            f.flush()
+
+            self.assertSetEqual({'a/b'}, Statistic(f.name).get_failure_paths(2))
+
+    def test_load_legacy_format_with_a_failure_in_the_first_run(self):
+        with tempfile.NamedTemporaryFile(prefix='quicktester.', mode='w') as f:
+            f.write('[[["a/b", "a.b", "TestCase.test_func"]]]')
+            f.flush()
+
+            self.assertSetEqual({'a/b'}, Statistic(f.name).get_failure_paths(1))
+
 
 class FakeResult(object):
     def __init__(self, tests):

@@ -38,3 +38,15 @@ Feature: the command-line statistics tool
           [F.] example/tests/test_example.py:example.tests.test_example:TestExample.test_example
           """
       And the last executed command passes
+
+  Scenario: handling the statistics format introduced in 0.1
+    Given the statistics file "statistics" is created:
+          """
+          [[], [["example/tests/test_example.py", "example.tests.test_example", "TestExample.test_example"]], []]
+          """
+     When the command "quicktester-statistics --backlog 4 --file statistics" is executed
+     Then the last executed command prints the following:
+          """
+          [ .F.] example/tests/test_example.py:example.tests.test_example:TestExample.test_example
+          """
+      And the last executed command passes

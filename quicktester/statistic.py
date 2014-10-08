@@ -40,20 +40,7 @@ class Statistic(object):
         self.__connection = self.__init_connection()
 
     def report_result(self, result):
-        try:
-            runid = self.__get_new_runid()
-
-            for failure, _ in result.failures:
-                self.__report_failure(failure, runid)
-
-            for error, _ in result.errors:
-                self.__report_failure(error, runid)
-
-        except:
-            self.__connection.rollback()
-            raise
-
-        self.__connection.commit()
+        self.__report_failures(case for case, _ in (result.failures + result.errors))
 
     def check_if_failed(self, obj, backlog):
         return nose.util.test_address(obj) in self.__get_failure_set(backlog)
@@ -98,29 +85,39 @@ class Statistic(object):
     ## Database functions
     ##
 
+    def __report_failures(self, failures):
+        try:
+            runid = self.__get_new_runid()
+
+            for failure in failures:
+                self.__report_failure(failure, runid)
+
+        except:
+            self.__connection.rollback()
+            raise
+
+        self.__connection.commit()
+
     def __report_failure(self, case, runid):
-        path, module, call = nose.util.test_address(case)
-        id = self.__get_testcase_id(case)
+        addr = nose.util.test_address(case)
+        return self.__report_failure_address(addr, runid)
+
+    def __report_failure_address(self, addr, runid):
+        path, module, call = addr
+        id = self.__get_testcase_id(addr)
 
         self.__connection.execute(
             'INSERT INTO failures (testid, runid, failtime) VALUES (?, ?, ?)',
             (id, runid, datetime.datetime.now())
         )
 
-    def __get_testcase_id(self, case):
-        path, module, call = nose.util.test_address(case)
-
-        cur = self.__connection.execute(
-            'SELECT id FROM tests WHERE path = ? AND module = ? AND call = ?',
-            (path, module, call)
-        )
+    def __get_testcase_id(self, addr):
+        addr = tuple(addr)
+        cur = self.__connection.execute('SELECT id FROM tests WHERE path = ? AND module = ? AND call = ?', addr)
 
         row = cur.fetchone()
         if row is None:
-            cur = self.__connection.execute(
-                'INSERT INTO tests (path, module, call) VALUES (?, ?, ?)',
-                (path, module, call)
-            )
+            cur = self.__connection.execute('INSERT INTO tests (path, module, call) VALUES (?, ?, ?)', addr)
             return cur.lastrowid
 
         return row[0]
@@ -175,6 +172,14 @@ class Statistic(object):
         if self.__filename is None or not os.path.isfile(self.__filename):
             return self.__create_connection()
 
+        if self.__is_legacy_format():
+            runs = self.__load_legacy_data()
+            os.rename(self.__filename, self.__filename + '~')
+
+            tempstat = type(self)(self.__filename)
+            for run in runs:
+                tempstat.__report_failures(_Address(case) for case in run)
+
         return self.__connect()
 
     def __create_connection(self):
@@ -189,3 +194,22 @@ class Statistic(object):
 
     def __connect(self):
         return sqlite3.connect(self.__filename or ':memory:')
+
+    def __is_legacy_format(self):
+        with open(self.__filename, 'rb') as f:
+            return f.read(3) in {b'[[[', b'[[]'}
+
+    def __load_legacy_data(self):
+        if self.__filename is None or not os.path.isfile(self.__filename):
+            return []
+
+        with open(self.__filename, 'r') as f:
+            return [[tuple(str(c) for c in address) for address in run] for run in json.load(f)]
+
+
+class _Address(object):
+    def __init__(self, address):
+        self.__address = address
+
+    def address(self):
+        return self.__address
