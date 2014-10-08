@@ -85,14 +85,18 @@ class TestStatistics(unittest.TestCase):
 
     EXPECTED_OUTPUT = '''\
 [       .FF] a/b:a.b:Test.func
+[       .F.] a/b:a.b:Test.func2
 '''
 
     def test_dump_info(self):
         statistic = Statistic(None)
+        self.tests += (FakeTest('/path/a/b', 'a.b', 'Test.func2'),)
+        self.results[0].tests.append(self.tests[-1])
 
         statistic.report_result(self.results[0])
 
         self.results[0].errors.append((self.tests[0], ''))
+        self.results[0].errors.append((self.tests[1], ''))
         statistic.report_result(self.results[0])
 
         self.results[0].errors = []

@@ -45,6 +45,7 @@ class Statistic(object):
         keys.sort()
 
         for path, module, call in keys:
+            addr = (path, module, call)
             runbar = self.__get_runbar(test_run_ids[addr], backlog)
 
             print('[{}] {}:{}:{}'.format(runbar, os.path.relpath(path, relto), module, call), file=file)
