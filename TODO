@@ -1,0 +1,24 @@
+* Speed up unit testing
+
+  Since the unit tests also use the sqlite db, they are
+  significantly slower than before. This could be sped up
+  with the proper architecture (we should test the logic
+  in Statistic separately from the database).
+
+* Move some unit tests into the features
+
+  A few tests are admittedly not meant to be unittests,
+  but rather part of an end-to-end test suite.
+
+* Test-module matcher
+
+  In order to run only the tests in the relevant files,
+  we should check what is imported in a test file, build
+  a table from it and check if a file is really relevant
+  to a module. Fortunately, ast.parse is really versatile. :)
+
+* Python 2.6 and 2.4 support if possible
+
+  Python 2.7 is already supported, but it might be good
+  to backport to older Python versions, in case someone
+  needs it.
