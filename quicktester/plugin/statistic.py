@@ -13,8 +13,6 @@ class StatisticsPlugin(nose.plugins.Plugin):
     statfile = None
 
     def options(self, parser, env):
-        super(StatisticsPlugin, self).options(parser, env)
-
         parser.add_option(
             '--disable-statistics',
             default=False,
@@ -28,8 +26,6 @@ class StatisticsPlugin(nose.plugins.Plugin):
         )
 
     def configure(self, options, config):
-        super(StatisticsPlugin, self).configure(options, config)
-
         if options.disable_statistics:
             self.enabled = False
             return

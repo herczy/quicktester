@@ -21,8 +21,6 @@ class FailOnlyPlugin(nose.plugins.Plugin):
     # Interface functions
     #
     def options(self, parser, env):
-        super(FailOnlyPlugin, self).options(parser, env)
-
         parser.add_option(
             '--run-count',
             default=0,
@@ -32,8 +30,6 @@ class FailOnlyPlugin(nose.plugins.Plugin):
         )
 
     def configure(self, options, config):
-        super(FailOnlyPlugin, self).configure(options, config)
-
         if options.run_count <= 0 or getattr(options, 'statistics_file', None) is None:
             return
 
