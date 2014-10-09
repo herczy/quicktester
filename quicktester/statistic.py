@@ -65,22 +65,62 @@ class Statistic(object):
         return ''.join(reversed(res))
 
 
+class _RunContext(object):
+    def __init__(self, connection):
+        self.__connection = connection
+        self.__runid = None
+
+    def __enter__(self):
+        self.__runid = self.__get_new_runid()
+        return self
+
+    def __exit__(self, exc_type, exc_value, trace):
+        if exc_type is not None:
+            self.__connection.rollback()
+
+        else:
+            self.__connection.commit()
+
+    def report_failure(self, case):
+        addr = nose.util.test_address(case)
+        return self.__report_failure_address(addr)
+
+    def __report_failure_address(self, addr):
+        path, module, call = addr
+        id = self.__get_testcase_id(addr)
+
+        self.__connection.execute(
+            'INSERT INTO failures (testid, runid, failtime) VALUES (?, ?, ?)',
+            (id, self.__runid, datetime.datetime.now())
+        )
+
+    def __get_testcase_id(self, addr):
+        addr = tuple(addr)
+        cur = self.__connection.execute('SELECT id FROM tests WHERE path = ? AND module = ? AND call = ?', addr)
+
+        row = cur.fetchone()
+        if row is None:
+            cur = self.__connection.execute('INSERT INTO tests (path, module, call) VALUES (?, ?, ?)', addr)
+            return cur.lastrowid
+
+        return row[0]
+
+    def __get_new_runid(self):
+        cur = self.__connection.execute(
+            'INSERT INTO runs (runtime) VALUES (?)',
+            (datetime.datetime.now(),)
+        )
+        return cur.lastrowid
+
+
 class _Database(object):
     def __init__(self, connection):
         self.__connection = connection
 
     def report_failures(self, failures):
-        try:
-            runid = self.__get_new_runid()
-
+        with _RunContext(self.__connection) as runctx:
             for failure in failures:
-                self.__report_failure(failure, runid)
-
-        except:
-            self.__connection.rollback()
-            raise
-
-        self.__connection.commit()
+                runctx.report_failure(failure)
 
     def get_last_runid(self):
         cur = self.__connection.execute('SELECT id FROM runs ORDER BY id DESC LIMIT 1')
@@ -111,37 +151,6 @@ class _Database(object):
 
         for path, module, call, runid in cur:
             yield path, module, call, last_runid - runid
-
-    def __report_failure(self, case, runid):
-        addr = nose.util.test_address(case)
-        return self.__report_failure_address(addr, runid)
-
-    def __report_failure_address(self, addr, runid):
-        path, module, call = addr
-        id = self.__get_testcase_id(addr)
-
-        self.__connection.execute(
-            'INSERT INTO failures (testid, runid, failtime) VALUES (?, ?, ?)',
-            (id, runid, datetime.datetime.now())
-        )
-
-    def __get_testcase_id(self, addr):
-        addr = tuple(addr)
-        cur = self.__connection.execute('SELECT id FROM tests WHERE path = ? AND module = ? AND call = ?', addr)
-
-        row = cur.fetchone()
-        if row is None:
-            cur = self.__connection.execute('INSERT INTO tests (path, module, call) VALUES (?, ?, ?)', addr)
-            return cur.lastrowid
-
-        return row[0]
-
-    def __get_new_runid(self):
-        cur = self.__connection.execute(
-            'INSERT INTO runs (runtime) VALUES (?)',
-            (datetime.datetime.now(),)
-        )
-        return cur.lastrowid
 
 
 class DatabaseFactory(object):
