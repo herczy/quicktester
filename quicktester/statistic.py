@@ -11,7 +11,7 @@ import sqlite3
 class Statistic(object):
     def __init__(self, filename, dbfactory=None):
         if dbfactory is None:
-            dbfactory = _DatabaseFactory
+            dbfactory = DatabaseFactory
 
         self.__database = dbfactory(filename).init_connection()
 
@@ -19,12 +19,15 @@ class Statistic(object):
         self.__database.report_failures(case for case, _ in (result.failures + result.errors))
 
     def check_if_failed(self, obj, backlog):
+        self.__verify_backlog(backlog)
         return nose.util.test_address(obj) in self.__database.get_failure_set(backlog)
 
     def get_failure_paths(self, backlog):
+        self.__verify_backlog(backlog)
         return set(path for path, _, _ in self.__database.get_failure_set(backlog))
 
     def dump_info(self, backlog, relto='.', file=sys.stdout):
+        self.__verify_backlog(backlog)
         test_run_ids = {}
         last_runid = self.__database.get_last_runid()
 
@@ -41,6 +44,10 @@ class Statistic(object):
             runbar = self.__get_runbar(test_run_ids[key], backlog, last_runid)
 
             print('[{}] {}:{}:{}'.format(runbar, os.path.relpath(path, relto), module, call), file=file)
+
+    def __verify_backlog(self, backlog):
+        if backlog <= 0:
+            raise ValueError('Backlog must be greater than 0')
 
     def __get_runbar(self, test_run_ids, backlog, last_runid):
         res = []
@@ -84,9 +91,6 @@ class _Database(object):
         return res[0]
 
     def get_failure_set(self, backlog):
-        if backlog <= 0:
-            raise ValueError('Backlog must be bigger than zero')
-
         last_runid = self.get_last_runid()
         cur = self.__connection.execute(
             'SELECT path, module, call, max(runid) AS maxid FROM failures JOIN tests ' +
@@ -97,13 +101,11 @@ class _Database(object):
         return set((path, module, call) for path, module, call, maxid in cur if last_runid - maxid < backlog)
 
     def get_runs(self, backlog):
-        if backlog <= 0:
-            raise ValueError('Backlog must be bigger than zero')
-
         last_runid = self.get_last_runid()
         cur = self.__connection.execute(
             'SELECT path, module, call, runid FROM failures JOIN tests ' +
-            'WHERE tests.id == failures.testid AND runid >= ?',
+            'WHERE tests.id == failures.testid AND runid >= ? ' +
+            'ORDER BY runid ASC',
             (last_runid - backlog + 1,)
         )
 
@@ -142,7 +144,7 @@ class _Database(object):
         return cur.lastrowid
 
 
-class _DatabaseFactory(object):
+class DatabaseFactory(object):
     TABLE_DEF_TESTS = '''
         CREATE TABLE tests (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
