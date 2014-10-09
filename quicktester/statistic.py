@@ -8,51 +8,27 @@ import datetime
 import sqlite3
 
 
-TABLE_DEF_TESTS = '''
-    CREATE TABLE tests (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        path TEXT,
-        module TEXT,
-        call TEXT
-    );
-'''
-
-TABLE_DEF_RUN = '''
-    CREATE TABLE runs (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        runtime DATETIME
-    );
-'''
-
-TABLE_DEF_FAILURES = '''
-    CREATE TABLE failures (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        testid INTEGER REFERENCES tests (id),
-        runid INTEGER REFERENCES runs (id),
-        failtime DATETIME
-    );
-'''
-
-
 class Statistic(object):
-    def __init__(self, filename):
-        self.__filename = filename
-        self.__connection = self.__init_connection()
+    def __init__(self, filename, dbfactory=None):
+        if dbfactory is None:
+            dbfactory = _DatabaseFactory
+
+        self.__database = dbfactory(filename).init_connection()
 
     def report_result(self, result):
-        self.__report_failures(case for case, _ in (result.failures + result.errors))
+        self.__database.report_failures(case for case, _ in (result.failures + result.errors))
 
     def check_if_failed(self, obj, backlog):
-        return nose.util.test_address(obj) in self.__get_failure_set(backlog)
+        return nose.util.test_address(obj) in self.__database.get_failure_set(backlog)
 
     def get_failure_paths(self, backlog):
-        return set(path for path, _, _ in self.__get_failure_set(backlog))
+        return set(path for path, _, _ in self.__database.get_failure_set(backlog))
 
     def dump_info(self, backlog, relto='.', file=sys.stdout):
         test_run_ids = {}
-        last_runid = self.__get_last_runid()
+        last_runid = self.__database.get_last_runid()
 
-        for path, module, call, runid in self.__get_runs(backlog):
+        for path, module, call, runid in self.__database.get_runs(backlog):
             key = (path, module, call)
             test_run_ids.setdefault(key, set())
             test_run_ids[key].add(runid)
@@ -81,11 +57,12 @@ class Statistic(object):
 
         return ''.join(reversed(res))
 
-    ##
-    ## Database functions
-    ##
 
-    def __report_failures(self, failures):
+class _Database(object):
+    def __init__(self, connection):
+        self.__connection = connection
+
+    def report_failures(self, failures):
         try:
             runid = self.__get_new_runid()
 
@@ -97,6 +74,41 @@ class Statistic(object):
             raise
 
         self.__connection.commit()
+
+    def get_last_runid(self):
+        cur = self.__connection.execute('SELECT id FROM runs ORDER BY id DESC LIMIT 1')
+        res = cur.fetchone()
+        if res is None:
+            return 0
+
+        return res[0]
+
+    def get_failure_set(self, backlog):
+        if backlog <= 0:
+            raise ValueError('Backlog must be bigger than zero')
+
+        last_runid = self.get_last_runid()
+        cur = self.__connection.execute(
+            'SELECT path, module, call, max(runid) AS maxid FROM failures JOIN tests ' +
+            'WHERE tests.id == failures.testid ' +
+            'GROUP BY path, module, call;'
+        )
+
+        return set((path, module, call) for path, module, call, maxid in cur if last_runid - maxid < backlog)
+
+    def get_runs(self, backlog):
+        if backlog <= 0:
+            raise ValueError('Backlog must be bigger than zero')
+
+        last_runid = self.get_last_runid()
+        cur = self.__connection.execute(
+            'SELECT path, module, call, runid FROM failures JOIN tests ' +
+            'WHERE tests.id == failures.testid AND runid >= ?',
+            (last_runid - backlog + 1,)
+        )
+
+        for path, module, call, runid in cur:
+            yield path, module, call, last_runid - runid
 
     def __report_failure(self, case, runid):
         addr = nose.util.test_address(case)
@@ -129,65 +141,58 @@ class Statistic(object):
         )
         return cur.lastrowid
 
-    def __get_last_runid(self):
-        cur = self.__connection.execute('SELECT id FROM runs ORDER BY id DESC LIMIT 1')
-        res = cur.fetchone()
-        if res is None:
-            return 0
 
-        return res[0]
+class _DatabaseFactory(object):
+    TABLE_DEF_TESTS = '''
+        CREATE TABLE tests (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            path TEXT,
+            module TEXT,
+            call TEXT
+        );
+    '''
 
-    def __get_failure_set(self, backlog):
-        if backlog <= 0:
-            raise ValueError('Backlog must be bigger than zero')
+    TABLE_DEF_RUN = '''
+        CREATE TABLE runs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            runtime DATETIME
+        );
+    '''
 
-        last_runid = self.__get_last_runid()
-        cur = self.__connection.execute(
-            'SELECT path, module, call, max(runid) AS maxid FROM failures JOIN tests ' +
-            'WHERE tests.id == failures.testid ' +
-            'GROUP BY path, module, call;'
-        )
+    TABLE_DEF_FAILURES = '''
+        CREATE TABLE failures (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            testid INTEGER REFERENCES tests (id),
+            runid INTEGER REFERENCES runs (id),
+            failtime DATETIME
+        );
+    '''
 
-        return set((path, module, call) for path, module, call, maxid in cur if last_runid - maxid < backlog)
+    def __init__(self, filename):
+        self.__filename = filename
 
-    def __get_runs(self, backlog):
-        if backlog <= 0:
-            raise ValueError('Backlog must be bigger than zero')
-
-        last_runid = self.__get_last_runid()
-        cur = self.__connection.execute(
-            'SELECT path, module, call, runid FROM failures JOIN tests ' +
-            'WHERE tests.id == failures.testid AND runid >= ?',
-            (last_runid - backlog + 1,)
-        )
-
-        for path, module, call, runid in cur:
-            yield path, module, call, last_runid - runid
-
-    ##
-    ## Connection initialization
-    ##
-
-    def __init_connection(self):
+    def init_connection(self):
         if self.__filename is None or not os.path.isfile(self.__filename):
-            return self.__create_connection()
+            return _Database(self.__create_database())
 
-        if self.__is_legacy_format():
-            runs = self.__load_legacy_data()
-            os.rename(self.__filename, self.__filename + '~')
+        if not self.__is_legacy_format():
+            return _Database(self.__connect())
 
-            tempstat = type(self)(self.__filename)
-            for run in runs:
-                tempstat.__report_failures(_Address(case) for case in run)
+        runs = self.__load_legacy_data()
+        os.rename(self.__filename, self.__filename + '~')
 
-        return self.__connect()
+        res = _Database(self.__create_database())
+        for run in runs:
+            res.report_failures(_Address(case) for case in run)
 
-    def __create_connection(self):
+        return res
+
+    def __create_database(self):
         sqlite = self.__connect()
 
-        sqlite.execute(TABLE_DEF_TESTS)
-        sqlite.execute(TABLE_DEF_FAILURES)
-        sqlite.execute(TABLE_DEF_RUN)
+        sqlite.execute(self.TABLE_DEF_TESTS)
+        sqlite.execute(self.TABLE_DEF_FAILURES)
+        sqlite.execute(self.TABLE_DEF_RUN)
         sqlite.commit()
 
         return sqlite
