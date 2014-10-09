@@ -33,11 +33,11 @@ class FailOnlyPlugin(nose.plugins.Plugin):
         if options.run_count <= 0 or getattr(options, 'statistics_file', None) is None:
             return
 
-        if not os.path.isfile(options.statistics_file):
+        if not self._os_isfile(options.statistics_file):
             return
 
         self.run_count = options.run_count
-        self.statistic = Statistic(options.statistics_file)
+        self.statistic = self._get_statistics(options.statistics_file)
         self.failpaths = self.statistic.get_failure_paths(self.run_count)
         self.enabled = True
 
@@ -49,3 +49,9 @@ class FailOnlyPlugin(nose.plugins.Plugin):
         return self.check_if_failed(func)
 
     wantMethod = wantFunction
+
+    def _get_statistics(self, filename):
+        return Statistic(filename)
+
+    def _os_isfile(self, filename):
+        return os.path.isfile(filename)

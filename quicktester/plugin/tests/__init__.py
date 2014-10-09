@@ -28,3 +28,13 @@ class PluginTestCase(unittest.TestCase):
         plugin.configure(ns, config)
 
         return plugin
+
+
+class FakeDatabaseFactory(object):
+    def __init__(self, expected_filename, db):
+        self.expected_filename = expected_filename
+        self.db = db
+
+    def init_connection(self, filename):
+        assert self.expected_filename == filename
+        return self.db
