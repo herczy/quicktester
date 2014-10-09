@@ -34,7 +34,10 @@ class StatisticsPlugin(nose.plugins.Plugin):
         self.statfile = options.statistics_file
 
     def finalize(self, result):
-        Statistic(self.statfile).report_result(result)
+        self._get_statistics(self.statfile).report_result(result)
+
+    def _get_statistics(self, filename):
+        return Statistic(filename)
 
 
 def quicktester_statistics():

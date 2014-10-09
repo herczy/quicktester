@@ -1,16 +1,18 @@
+import unittest
 import os.path
 import tempfile
 
-from . import PluginTestCase
+from . import PluginTestCase, FakeDatabaseFactory
 
 from ..statistic import StatisticsPlugin
 from ...statistic import Statistic
-from ...tests.test_statistic import FakeResult, FakeTest, TemporaryStatisticsFile
+from ...tests.test_statistic import FakeResult, FakeTest, FakeDatabase, TemporaryStatisticsFile
 from .. import DEFAULT_STATISTICS_FILE
 
 
 class StatisticsPluginTest(PluginTestCase):
-    plugin = StatisticsPlugin
+    def plugin(self):
+        return FakeStatisticsPlugin()
 
     def test_enabled_by_default(self):
         plugin = self.get_configured_plugin('')
@@ -33,8 +35,27 @@ class StatisticsPluginTest(PluginTestCase):
         result = FakeResult([FakeTest('/path/to/module', 'module', 'Test.func')])
         result.errors.append((result.tests[0], ''))
 
-        with TemporaryStatisticsFile() as filename:
-            plugin = self.get_configured_plugin('--statistics-file "{}"'.format(filename))
-            plugin.finalize(result)
+        filename = 'statfilename'
+        plugin = self.get_configured_plugin('--statistics-file "{}"'.format(filename))
+        plugin.finalize(result)
 
-            self.assertEqual({'/path/to/module'}, Statistic(filename).get_failure_paths(1))
+        self.assertEqual(
+            {'/path/to/module'},
+            plugin._get_statistics(filename).get_failure_paths(1)
+        )
+
+
+class FakeStatisticsPlugin(StatisticsPlugin):
+    statistics_files = {}
+
+    def _get_statistics(self, filename):
+        if filename not in self.statistics_files:
+            self.statistics_files[filename] = Statistic(
+                filename,
+                dbfactory=FakeDatabaseFactory(
+                    filename,
+                    FakeDatabase()
+                )
+            )
+
+        return self.statistics_files[filename]
