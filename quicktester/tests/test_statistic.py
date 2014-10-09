@@ -17,11 +17,7 @@ else:
 
 class TestStatistics(unittest.TestCase):
     def initialize_statistic(self):
-        runs = []
-        for result in self.results:
-            runs.append([case for case, _ in (result.failures + result.errors)])
-
-        return Statistic(None, dbfactory=FakeDatabase.get_factory(runs))
+        return Statistic(None, dbfactory=FakeDatabaseFactory(self.results))
 
     def assert_failures(self, expected, backlog=1):
         self.assertSetEqual(
@@ -115,7 +111,7 @@ class TestDatabaseFactory(unittest.TestCase):
     # this, we use the 'dbfactory' argument directly.
 
     def initialize_statistic(self, filename):
-        return Statistic(filename, dbfactory=DatabaseFactory)
+        return Statistic(filename, dbfactory=DatabaseFactory())
 
     def test_can_load_if_file_does_not_exist(self):
         with TemporaryStatisticsFile() as filename:
@@ -181,17 +177,12 @@ class FakeDatabase(object):
             for path, module, call in self.__runs[runid]:
                 yield path, module, call, self.get_last_runid() - runid
 
-    @classmethod
-    def get_factory(cls, runs):
-        res = cls()
-        for run in runs:
-            res.report_failures(run)
 
-        class FakeDatabaseFactory(object):
-            def __init__(self, filename):
-                self.database = res
+class FakeDatabaseFactory(object):
+    def __init__(self, results):
+        self.database = FakeDatabase()
+        for result in results:
+            self.database.report_failures(case for case, _ in (result.errors + result.failures))
 
-            def init_connection(self):
-                return self.database
-
-        return FakeDatabaseFactory
+    def init_connection(self, filename):
+        return self.database

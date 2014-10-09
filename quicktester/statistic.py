@@ -11,9 +11,9 @@ import sqlite3
 class Statistic(object):
     def __init__(self, filename, dbfactory=None):
         if dbfactory is None:
-            dbfactory = DatabaseFactory
+            dbfactory = DatabaseFactory()
 
-        self.__database = dbfactory(filename).init_connection()
+        self.__database = dbfactory.init_connection(filename)
 
     def report_result(self, result):
         self.__database.report_failures(case for case, _ in (result.failures + result.errors))
@@ -170,27 +170,24 @@ class DatabaseFactory(object):
         );
     '''
 
-    def __init__(self, filename):
-        self.__filename = filename
+    def init_connection(self, filename):
+        if filename is None or not os.path.isfile(filename):
+            return _Database(self.__create_database(filename))
 
-    def init_connection(self):
-        if self.__filename is None or not os.path.isfile(self.__filename):
-            return _Database(self.__create_database())
+        if not self.__is_legacy_format(filename):
+            return _Database(self.__connect(filename))
 
-        if not self.__is_legacy_format():
-            return _Database(self.__connect())
+        runs = self.__load_legacy_data(filename)
+        os.rename(filename, filename + '~')
 
-        runs = self.__load_legacy_data()
-        os.rename(self.__filename, self.__filename + '~')
-
-        res = _Database(self.__create_database())
+        res = _Database(self.__create_database(filename))
         for run in runs:
             res.report_failures(_Address(case) for case in run)
 
         return res
 
-    def __create_database(self):
-        sqlite = self.__connect()
+    def __create_database(self, filename):
+        sqlite = self.__connect(filename)
 
         sqlite.execute(self.TABLE_DEF_TESTS)
         sqlite.execute(self.TABLE_DEF_FAILURES)
@@ -199,18 +196,18 @@ class DatabaseFactory(object):
 
         return sqlite
 
-    def __connect(self):
-        return sqlite3.connect(self.__filename or ':memory:')
+    def __connect(self, filename):
+        return sqlite3.connect(filename or ':memory:')
 
-    def __is_legacy_format(self):
-        with open(self.__filename, 'rb') as f:
+    def __is_legacy_format(self, filename):
+        with open(filename, 'rb') as f:
             return f.read(3) in {b'[[[', b'[[]'}
 
-    def __load_legacy_data(self):
-        if self.__filename is None or not os.path.isfile(self.__filename):
+    def __load_legacy_data(self, filename):
+        if filename is None or not os.path.isfile(filename):
             return []
 
-        with open(self.__filename, 'r') as f:
+        with open(filename, 'r') as f:
             return [[tuple(str(c) for c in address) for address in run] for run in json.load(f)]
 
 
