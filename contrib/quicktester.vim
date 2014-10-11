@@ -17,38 +17,36 @@
 if exists('quicktester_loaded')
   finish
 endif
-
 let quicktester_loaded = 1
-let g:quicktester = 1
-let g:nosefailed = 0
 
-fun! s:get_python()
-  if exists('t:python')
-    let command = t:python
-  elseif exists('g:python')
-    let command = g:python
+let s:QuickTester = {}
+
+let s:QuickTester.enabled = 1
+let s:QuickTester.last_call_failed = 1
+
+fun! s:QuickTester.get_python()
+  if exists('g:python')
+    return g:python
   else
-    let command = 'python'
+    return 'python'
   endif
-
-  return command
 endfun
 
-fun! s:check_quicktester()
-  if !g:quicktester
+fun! s:QuickTester.check_quicktester()
+  if !self.enabled
     return 0
   endif
 
-  exec system(s:get_python() . ' -c "import quicktester"')
+  exec system(self.get_python() . ' -c "import quicktester"')
   return !v:shell_error
 endfun
 
-fun! s:get_nosetest()
-  return s:get_python() . ' $(which nosetests)'
+fun! s:QuickTester.get_nosetest()
+  return self.get_python() . ' $(which nosetests)'
 endfun
 
-fun! s:run_nosetests(...)
-  let nose = s:get_nosetest()
+fun! s:QuickTester.run_nosetests(...)
+  let nose = self.get_nosetest()
   let command = ':!' . nose . ' -s'
 
   if a:0 > 0
@@ -57,26 +55,26 @@ fun! s:run_nosetests(...)
 
   execute command
   if v:shell_error
-    let g:nosefailed = 1
+    let self.last_call_failed = 1
   else
-    let g:nosefailed = 0
+    let self.last_call_failed = 0
   endif
 endfun
 
-fun! s:run_quicktest(...)
-  if !s:check_quicktester()
+fun! s:QuickTester.run_quicktest(...)
+  if !self.check_quicktester()
     let args = ''
     if a:0 > 0
       let args = a:1
     endif
 
-    call s:run_nosetests(args)
+    call self.run_nosetests(args)
     return
   endif
 
   let command = '-Q /tmp/nose-quickfix'
 
-  if g:nosefailed
+  if self.last_call_failed
     let command = command . ' --run-count 1'
   else
     let command = command . ' --git-changes'
@@ -86,12 +84,13 @@ fun! s:run_quicktest(...)
     let command = command . ' ' . a:1
   endif
 
-  call s:run_nosetests(command)
-  if g:nosefailed
+  call self.run_nosetests(command)
+  if self.last_call_failed
     cgetfile /tmp/nose-quickfix
     echom 'Use :cn or :cp to switch between errors'
   endif
 endfun
 
-command! -nargs=* -complete=file_in_path Quicktest :call s:run_quicktest('<args>')
-command! -nargs=* -complete=file_in_path Nose :call s:run_nosetests('<args>')
+command! -nargs=* -complete=file_in_path Quicktest :call s:QuickTester.run_quicktest('<args>')
+command! -nargs=* -complete=file_in_path Nose :call s:QuickTester.run_nosetests('<args>')
+command! -nargs=+ SetPython :let g:python = '<args>'
