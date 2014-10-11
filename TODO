@@ -5,6 +5,8 @@
   a table from it and check if a file is really relevant
   to a module. Fortunately, ast.parse is really versatile. :)
 
+
+
 * Add contrib files and vim plugin
 
   I have an idea that ties together these patches that's
@@ -13,7 +15,8 @@
   re-run the failing cases. All this is with the quickfix,
   so jumping between trace positions would be simple.
 
-
+  [done: contrib/quickfix.vim, just copy it in your vim
+         plugin directory]
 
 * Speed up unit testing
 
