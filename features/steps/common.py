@@ -1,3 +1,4 @@
+import sys
 import os
 import library
 
@@ -92,13 +93,22 @@ def step_impl(context):
     )
 
 
+def __ugly_hack_os_error_replacement(context):
+    # Ugly hack: until Python 3.3, all there was is OSError's,
+    # but now there is a PermissionError, so we need to fix this
+    if sys.hexversion >= 0x03030000:
+        context.text = context.text.replace('OSError', 'PermissionError')
+
+
 @then('the quickfix file has the following content')
 def step_impl(context):
+    __ugly_hack_os_error_replacement(context)
     library.runner.assert_tempfile(context, 'QUICKFIX')
 
 
 @then('the quickfix file contains the following line')
 def step_impl(context):
+    __ugly_hack_os_error_replacement(context)
     library.runner.assert_tempfile_contains(context, 'QUICKFIX')
 
 
