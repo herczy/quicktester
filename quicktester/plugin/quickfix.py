@@ -43,7 +43,9 @@ class QuickFixPlugin(nose.plugins.Plugin):
     def finalize(self, result):
         with open(self.output_filename, 'w') as f:
             for test, error in self.exceptions:
+                print('--- {}: {} ---'.format(error[0].__name__, error[1]), file=f)
                 self.__print_qf_trace(f, error[-1])
+                print(file=f)
 
     def __print_qf_trace(self, stream, tb):
         while tb is not None:

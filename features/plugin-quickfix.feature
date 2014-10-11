@@ -21,6 +21,7 @@ Feature: fail-only plugin
      When the command "nosetests -Q $(QUICKFIX) -s" is executed
      Then the quickfix file has the following content:
           """
+          --- OSError: [Errno 13] Permission denied: '/a' ---
           example/tests/test_example.py:6:os.makedirs('/a/b/c')
           """
 
