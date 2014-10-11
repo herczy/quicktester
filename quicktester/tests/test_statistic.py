@@ -5,7 +5,7 @@ import shutil
 import io
 import sys
 
-from ..statistic import Statistic, DatabaseFactory
+from ..statistic import Report, Statistic, DatabaseFactory
 
 
 if sys.version_info.major >= 3:
@@ -13,6 +13,36 @@ if sys.version_info.major >= 3:
 
 else:
     StringIO = io.BytesIO
+
+
+class TestReport(unittest.TestCase):
+    def setUp(self):
+        self.report = Report()
+        self.report.add(
+            FakeTest('/path/to/test', 'test', 'TestSuite.test_case'),
+            Report.STATUS_PASSED
+        )
+        self.report.add(
+            FakeTest('/path/to/test', 'test', 'TestSuite.test_failing_case'),
+            Report.STATUS_FAILED
+        )
+
+    def test_get_status_by_id(self):
+        self.assertRaises(KeyError, Report.get_status_by_id, -1)
+        self.assertEqual(Report.STATUS_PASSED, Report.get_status_by_id(0))
+        self.assertEqual(Report.STATUS_FAILED, Report.get_status_by_id(1))
+        self.assertEqual(Report.STATUS_ERROR, Report.get_status_by_id(2))
+        self.assertEqual(Report.STATUS_SKIPPED, Report.get_status_by_id(3))
+        self.assertRaises(KeyError, Report.get_status_by_id, 4)
+
+    def test_get_entries(self):
+        self.assertListEqual(
+            [
+                ('TestSuite.test_case', Report.STATUS_PASSED),
+                ('TestSuite.test_failing_case', Report.STATUS_FAILED),
+            ],
+            [(case.address()[-1], status) for case, status in self.report]
+        )
 
 
 class TestStatistics(unittest.TestCase):

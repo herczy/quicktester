@@ -9,15 +9,33 @@ import sqlite3
 import collections
 
 
-Status = collections.namedtuple('Status', ['id', 'code', 'name'])
+class Report(object):
+    Status = collections.namedtuple('Status', ['id', 'code', 'name'])
 
-
-class Statistic(object):
     STATUS_PASSED = Status(0, '.', 'passed')
     STATUS_FAILED = Status(1, 'F', 'failed')
     STATUS_ERROR = Status(2, 'E', 'error')
     STATUS_SKIPPED = Status(3, 'S', 'skipped')
 
+    __status_ids = {
+        status.id: status for status in {STATUS_PASSED, STATUS_FAILED, STATUS_ERROR, STATUS_SKIPPED}
+    }
+
+    @classmethod
+    def get_status_by_id(cls, id):
+        return cls.__status_ids[id]
+
+    def __init__(self):
+        self.__cases = []
+
+    def add(self, case, status):
+        self.__cases.append((case, status))
+
+    def __iter__(self):
+        return iter(self.__cases)
+
+
+class Statistic(object):
     def __init__(self, filename, dbfactory=None):
         if dbfactory is None:
             dbfactory = DatabaseFactory()
@@ -27,10 +45,10 @@ class Statistic(object):
     def report_result(self, result):
         run_data = []
         for error, _ in result.errors:
-            run_data.append((error, self.STATUS_ERROR))
+            run_data.append((error, Report.STATUS_ERROR))
 
         for failure, _ in result.failures:
-            run_data.append((failure, self.STATUS_FAILED))
+            run_data.append((failure, Report.STATUS_FAILED))
 
         self.__database.report_run(run_data)
 
@@ -112,7 +130,7 @@ class _Database(object):
             'SELECT path, module, call, max(runid) AS maxid FROM result JOIN test ' +
             'WHERE test.id == result.testid AND result.statusid == ?' +
             'GROUP BY path, module, call;',
-            (Statistic.STATUS_FAILED.id,)
+            (Report.STATUS_FAILED.id,)
         )
 
         return set((path, module, call) for path, module, call, maxid in cur if last_runid - maxid < backlog)
@@ -123,7 +141,7 @@ class _Database(object):
             'SELECT path, module, call, runid FROM result JOIN test ' +
             'WHERE test.id == result.testid AND runid >= ? AND result.statusid = ?' +
             'ORDER BY runid ASC',
-            (last_runid - backlog + 1, Statistic.STATUS_FAILED.id)
+            (last_runid - backlog + 1, Report.STATUS_FAILED.id)
         )
 
         for path, module, call, runid in cur:
@@ -200,7 +218,7 @@ class DatabaseFactory(object):
 
         res = _Database(self.__create_database(filename))
         for run in runs:
-            res.report_run((_Address(case), Statistic.STATUS_FAILED) for case in run)
+            res.report_run((_Address(case), Report.STATUS_FAILED) for case in run)
 
         return res
 
