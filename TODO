@@ -1,15 +1,3 @@
-* Speed up unit testing
-
-  Since the unit tests also use the sqlite db, they are
-  significantly slower than before. This could be sped up
-  with the proper architecture (we should test the logic
-  in Statistic separately from the database).
-
-* Move some unit tests into the features
-
-  A few tests are admittedly not meant to be unittests,
-  but rather part of an end-to-end test suite.
-
 * Test-module matcher
 
   In order to run only the tests in the relevant files,
@@ -17,8 +5,36 @@
   a table from it and check if a file is really relevant
   to a module. Fortunately, ast.parse is really versatile. :)
 
+* Add contrib files and vim plugin
+
+  I have an idea that ties together these patches that's
+  perfectly suited for vim users. This would basically run
+  only git changes and if there was a failure then only
+  re-run the failing cases. All this is with the quickfix,
+  so jumping between trace positions would be simple.
+
+
+
+* Speed up unit testing
+
+  Since the unit tests also use the sqlite db, they are
+  significantly slower than before. This could be sped up
+  with the proper architecture (we should test the logic
+  in Statistic separately from the database).
+
+  [done: unit tests are under 1sec at this time]
+
+* Move some unit tests into the features
+
+  A few tests are admittedly not meant to be unittests,
+  but rather part of an end-to-end test suite.
+
+  [done: removed tests that were better suited for other levels]
+
 * Python 2.6 and 2.4 support if possible
 
   Python 2.7 is already supported, but it might be good
   to backport to older Python versions, in case someone
   needs it.
+
+  [failed: Py2.6 is simply too different from 2.7+]
