@@ -164,43 +164,6 @@ class TestStatistics(unittest.TestCase):
         self.assertEqual(self.EXPECTED_OUTPUT, f.getvalue())
 
 
-class TestDatabaseFactory(unittest.TestCase):
-    # NOTE: DatabaseFactory is not directly tested, but rather through the
-    # Statistic class which uses DatabaseFactory by default. To still reflect
-    # this, we use the 'dbfactory' argument directly.
-
-    def initialize_statistic(self, filename):
-        return Statistic(filename, dbfactory=DatabaseFactory())
-
-    def test_can_load_if_file_does_not_exist(self):
-        with TemporaryStatisticsFile() as filename:
-            self.assertSetEqual(set(), self.initialize_statistic(filename).get_failure_paths(1))
-
-    def test_load_legacy_format_with_no_failures_as_the_first_run(self):
-        with tempfile.NamedTemporaryFile(prefix='quicktester.', mode='w') as f:
-            f.write('[[], [["a/b", "a.b", "TestCase.test_func"]]]')
-            f.flush()
-
-            self.assertSetEqual({'a/b'}, self.initialize_statistic(f.name).get_failure_paths(2))
-
-    def test_load_legacy_format_with_a_failure_in_the_first_run(self):
-        with tempfile.NamedTemporaryFile(prefix='quicktester.', mode='w') as f:
-            f.write('[[["a/b", "a.b", "TestCase.test_func"]]]')
-            f.flush()
-
-            self.assertSetEqual({'a/b'}, self.initialize_statistic(f.name).get_failure_paths(1))
-
-    def test_get_run(self):
-        with tempfile.NamedTemporaryFile(prefix='quicktester.', mode='w') as f:
-            f.write('[[["a/b", "a.b", "TestCase.test_func"]]]')
-            f.flush()
-
-            self.assertListEqual(
-                [('a/b', 'a.b', 'TestCase.test_func', Report.STATUS_FAILED)],
-                list(DatabaseFactory().init_connection(f.name).get_run(1))
-            )
-
-
 class FakeResult(object):
     def __init__(self, tests):
         self.tests = list(tests)
