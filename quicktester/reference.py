@@ -32,6 +32,11 @@ class _ReferenceCollector(ast.NodeVisitor):
 
 
 class References(collections.Set):
+    @classmethod
+    def load_from_file(cls, filename):
+        with open(filename) as f:
+            return cls(ast.parse(f.read()), filename)
+
     def __init__(self, ast, filename, cwd=None, _import=None):
         if cwd is None:
             cwd = '.'
@@ -56,6 +61,9 @@ class References(collections.Set):
                 package = self.__import('.'.join(base[:-level] + fullname))
 
             except ImportError:
+                continue
+
+            if not hasattr(package, '__file__'):
                 continue
 
             relname = os.path.relpath(package.__file__, self.__cwd)
