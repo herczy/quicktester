@@ -39,7 +39,7 @@ fun! s:check_quicktester()
     return 0
   endif
 
-  exec system(s:get_python() . ' -m quicktester')
+  exec system(s:get_python() . ' -c "import quicktester"')
   return !v:shell_error
 endfun
 
