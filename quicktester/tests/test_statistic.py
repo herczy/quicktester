@@ -35,6 +35,9 @@ class TestReport(unittest.TestCase):
         self.assertEqual(Report.STATUS_SKIPPED, Report.get_status_by_id(3))
         self.assertRaises(KeyError, Report.get_status_by_id, 4)
 
+    def test_get_failing_ids(self):
+        self.assertSetEqual({1, 2}, Report.get_failing_ids())
+
     def test_get_entries(self):
         self.assertListEqual(
             [
@@ -133,19 +136,21 @@ class TestStatistics(unittest.TestCase):
         self.assert_failures(['/path/a/b'], backlog=2)
 
     EXPECTED_OUTPUT = '''\
-[       .FF] a/b:a.b:Test.func
-[       .F.] a/b:a.b:Test.func2
+[     . .FE] a/b:a.b:Test.func
+[      . S.] a/b:a.b:Test.func2
 '''
 
     def test_dump_info(self):
         new_test = FakeTest('/path/a/b', 'a.b', 'Test.func2')
         self.add_report(
+            (new_test, Report.STATUS_PASSED),
+        )
+        self.add_report(
             (self.test, Report.STATUS_PASSED),
-            (new_test, Report.STATUS_PASSED)
         )
         self.add_report(
             (self.test, Report.STATUS_FAILED),
-            (new_test, Report.STATUS_FAILED)
+            (new_test, Report.STATUS_SKIPPED)
         )
         self.add_report(
             (self.test, Report.STATUS_ERROR),
@@ -191,7 +196,7 @@ class TestDatabaseFactory(unittest.TestCase):
             f.flush()
 
             self.assertListEqual(
-                [('a/b', 'a.b', 'TestCase.test_func', 0)],
+                [('a/b', 'a.b', 'TestCase.test_func', Report.STATUS_FAILED)],
                 list(DatabaseFactory().init_connection(f.name).get_run(1))
             )
 
@@ -241,10 +246,7 @@ class FakeDatabase(object):
 
     def get_run(self, runid):
         for (path, module, call), status in self.__runs[runid]:
-            if not Report.get_status_by_id(status).failing:
-                continue
-
-            yield path, module, call, self.get_last_runid() - runid
+            yield path, module, call, Report.get_status_by_id(status)
 
 
 class FakeDatabaseFactory(object):

@@ -11,6 +11,7 @@ class StatisticsPlugin(nose.plugins.Plugin):
 
     name = 'statistics'
     statfile = None
+    statreport = None
 
     def options(self, parser, env):
         parser.add_option(
@@ -32,17 +33,22 @@ class StatisticsPlugin(nose.plugins.Plugin):
 
         self.enabled = True
         self.statfile = options.statistics_file
+        self.statreport = Report()
+
+    def addSuccess(self, case):
+        self.statreport.add(case, Report.STATUS_PASSED)
+
+    def addFailure(self, case, error):
+        self.statreport.add(case, Report.STATUS_FAILED)
+
+    def addError(self, case, error):
+        self.statreport.add(case, Report.STATUS_ERROR)
+
+    def addSkip(self, case):
+        self.statreport.add(case, Report.STATUS_SKIPPED)
 
     def finalize(self, result):
-        report = Report()
-
-        for case, _ in result.errors:
-            report.add(case, Report.STATUS_ERROR)
-
-        for case, _ in result.failures:
-            report.add(case, Report.STATUS_FAILED)
-
-        self._get_statistics(self.statfile).report_run(report)
+        self._get_statistics(self.statfile).report_run(self.statreport)
 
     def _get_statistics(self, filename):
         return Statistic(filename)

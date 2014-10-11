@@ -15,7 +15,7 @@ class Report(object):
     STATUS_PASSED = Status(0, '.', 'passed', False)
     STATUS_FAILED = Status(1, 'F', 'failed', True)
     STATUS_ERROR = Status(2, 'E', 'error', True)
-    STATUS_SKIPPED = Status(3, 'S', 'skipped', True)
+    STATUS_SKIPPED = Status(3, 'S', 'skipped', False)
 
     __status_ids = {
         status.id: status for status in {STATUS_PASSED, STATUS_FAILED, STATUS_ERROR, STATUS_SKIPPED}
@@ -24,6 +24,10 @@ class Report(object):
     @classmethod
     def get_status_by_id(cls, id):
         return cls.__status_ids[id]
+
+    @classmethod
+    def get_failing_ids(cls):
+        return {id for id, status in cls.__status_ids.items() if status.failing}
 
     def __init__(self):
         self.__cases = []
@@ -55,24 +59,26 @@ class Statistic(object):
 
     def dump_info(self, backlog, relto='.', file=sys.stdout):
         self.__verify_backlog(backlog)
-        test_run_ids = {}
         last_runid = self.__database.get_last_runid()
 
-        for _runid in range(last_runid - backlog + 1, last_runid + 1):
-            if _runid < 0:
+        display_range = (last_runid - backlog + 1, last_runid)
+        test_runs = {}
+
+        for runid in range(display_range[0], display_range[1] + 1):
+            if runid < 0:
                 continue
 
-            for path, module, call, runid in self.__database.get_run(_runid):
-                key = (path, module, call)
-                test_run_ids.setdefault(key, set())
-                test_run_ids[key].add(runid)
+            for path, module, call, status in self.__database.get_run(runid):
+                addr = (path, module, call)
+                test_runs.setdefault(addr, {})
+                test_runs[addr][runid] = status
 
-        keys = list(test_run_ids.keys())
+        keys = list(test_runs.keys())
         keys.sort()
 
         for path, module, call in keys:
             key = (path, module, call)
-            runbar = self.__get_runbar(test_run_ids[key], backlog, last_runid)
+            runbar = self.__get_runbar(test_runs[key], display_range)
 
             print('[{}] {}:{}:{}'.format(runbar, os.path.relpath(path, relto), module, call), file=file)
 
@@ -80,20 +86,16 @@ class Statistic(object):
         if backlog <= 0:
             raise ValueError('Backlog must be greater than 0')
 
-    def __get_runbar(self, test_run_ids, backlog, last_runid):
+    def __get_runbar(self, test_run, display_range):
         res = []
-        for index in range(backlog):
-            if last_runid <= index:
+        for runid in range(display_range[0], display_range[1] + 1):
+            if runid not in test_run:
                 res.append(' ')
                 continue
 
-            if index in test_run_ids:
-                res.append('F')
+            res.append(test_run[runid].code)
 
-            else:
-                res.append('.')
-
-        return ''.join(reversed(res))
+        return ''.join(res)
 
 
 class _Database(object):
@@ -122,12 +124,15 @@ class _Database(object):
         return res[0]
 
     def get_failure_set(self, backlog):
+        failure_ids = tuple(Report.get_failing_ids())
+        failure_conds = ' OR '.join(['result.statusid == ?'] * len(failure_ids))
+
         last_runid = self.get_last_runid()
         cur = self.__connection.execute(
             'SELECT path, module, call, max(runid) AS maxid FROM result JOIN test ' +
-            'WHERE test.id == result.testid AND result.statusid == ?' +
+            'WHERE test.id == result.testid AND ({}) '.format(failure_conds) +
             'GROUP BY path, module, call;',
-            (Report.STATUS_FAILED.id,)
+            failure_ids
         )
 
         return set((path, module, call) for path, module, call, maxid in cur if last_runid - maxid < backlog)
@@ -135,14 +140,14 @@ class _Database(object):
     def get_run(self, runid):
         last_runid = self.get_last_runid()
         cur = self.__connection.execute(
-            'SELECT path, module, call, runid, statusid FROM result JOIN test ' +
+            'SELECT path, module, call, statusid FROM result JOIN test ' +
             'WHERE test.id == result.testid AND runid == ?' +
             'ORDER BY runid ASC',
             (runid,)
         )
 
-        for path, module, call, runid, statusid in cur:
-            yield path, module, call, last_runid - runid
+        for path, module, call, statusid in cur:
+            yield path, module, call, Report.get_status_by_id(statusid)
 
     def __report_case(self, case, status, runid):
         addr = nose.util.test_address(case)
