@@ -1,4 +1,3 @@
-import os.path
-from quicktester.plugin.statistic import quicktester_statistics, DEFAULT_STATISTICS_FILE
+from quicktester.plugin.statistic import quicktester_statistics
 
 quicktester_statistics()
