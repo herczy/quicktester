@@ -6,9 +6,18 @@ import nose
 import os.path
 import datetime
 import sqlite3
+import collections
+
+
+Status = collections.namedtuple('Status', ['id', 'code', 'name'])
 
 
 class Statistic(object):
+    STATUS_PASSED = Status(0, '.', 'passed')
+    STATUS_FAILED = Status(1, 'F', 'failed')
+    STATUS_ERROR = Status(2, 'E', 'error')
+    STATUS_SKIPPED = Status(3, 'S', 'skipped')
+
     def __init__(self, filename, dbfactory=None):
         if dbfactory is None:
             dbfactory = DatabaseFactory()
@@ -16,7 +25,14 @@ class Statistic(object):
         self.__database = dbfactory.init_connection(filename)
 
     def report_result(self, result):
-        self.__database.report_failures(case for case, _ in (result.failures + result.errors))
+        run_data = []
+        for error, _ in result.errors:
+            run_data.append((error, self.STATUS_ERROR))
+
+        for failure, _ in result.failures:
+            run_data.append((failure, self.STATUS_FAILED))
+
+        self.__database.report_run(run_data)
 
     def check_if_failed(self, obj, backlog):
         self.__verify_backlog(backlog)
@@ -69,12 +85,12 @@ class _Database(object):
     def __init__(self, connection):
         self.__connection = connection
 
-    def report_failures(self, failures):
+    def report_run(self, cases):
         try:
             runid = self.__get_new_runid()
 
-            for failure in failures:
-                self.__report_failure(failure, runid)
+            for case, status in cases:
+                self.__report_case(case, status, runid)
 
         except:
             self.__connection.rollback()
@@ -83,7 +99,7 @@ class _Database(object):
         self.__connection.commit()
 
     def get_last_runid(self):
-        cur = self.__connection.execute('SELECT id FROM runs ORDER BY id DESC LIMIT 1')
+        cur = self.__connection.execute('SELECT id FROM run ORDER BY id DESC LIMIT 1')
         res = cur.fetchone()
         if res is None:
             return 0
@@ -93,9 +109,10 @@ class _Database(object):
     def get_failure_set(self, backlog):
         last_runid = self.get_last_runid()
         cur = self.__connection.execute(
-            'SELECT path, module, call, max(runid) AS maxid FROM failures JOIN tests ' +
-            'WHERE tests.id == failures.testid ' +
-            'GROUP BY path, module, call;'
+            'SELECT path, module, call, max(runid) AS maxid FROM result JOIN test ' +
+            'WHERE test.id == result.testid AND result.statusid == ?' +
+            'GROUP BY path, module, call;',
+            (Statistic.STATUS_FAILED.id,)
         )
 
         return set((path, module, call) for path, module, call, maxid in cur if last_runid - maxid < backlog)
@@ -103,50 +120,50 @@ class _Database(object):
     def get_runs(self, backlog):
         last_runid = self.get_last_runid()
         cur = self.__connection.execute(
-            'SELECT path, module, call, runid FROM failures JOIN tests ' +
-            'WHERE tests.id == failures.testid AND runid >= ? ' +
+            'SELECT path, module, call, runid FROM result JOIN test ' +
+            'WHERE test.id == result.testid AND runid >= ? AND result.statusid = ?' +
             'ORDER BY runid ASC',
-            (last_runid - backlog + 1,)
+            (last_runid - backlog + 1, Statistic.STATUS_FAILED.id)
         )
 
         for path, module, call, runid in cur:
             yield path, module, call, last_runid - runid
 
-    def __report_failure(self, case, runid):
+    def __report_case(self, case, status, runid):
         addr = nose.util.test_address(case)
-        return self.__report_failure_address(addr, runid)
+        return self.__report_case_address(addr, status, runid)
 
-    def __report_failure_address(self, addr, runid):
+    def __report_case_address(self, addr, status, runid):
         path, module, call = addr
         id = self.__get_testcase_id(addr)
 
         self.__connection.execute(
-            'INSERT INTO failures (testid, runid, failtime) VALUES (?, ?, ?)',
-            (id, runid, datetime.datetime.now())
+            'INSERT INTO result (testid, runid, statusid, time) VALUES (?, ?, ?, ?)',
+            (id, runid, status.id, datetime.datetime.now())
         )
 
     def __get_testcase_id(self, addr):
         addr = tuple(addr)
-        cur = self.__connection.execute('SELECT id FROM tests WHERE path = ? AND module = ? AND call = ?', addr)
+        cur = self.__connection.execute('SELECT id FROM test WHERE path = ? AND module = ? AND call = ?', addr)
 
         row = cur.fetchone()
         if row is None:
-            cur = self.__connection.execute('INSERT INTO tests (path, module, call) VALUES (?, ?, ?)', addr)
+            cur = self.__connection.execute('INSERT INTO test (path, module, call) VALUES (?, ?, ?)', addr)
             return cur.lastrowid
 
         return row[0]
 
     def __get_new_runid(self):
         cur = self.__connection.execute(
-            'INSERT INTO runs (runtime) VALUES (?)',
+            'INSERT INTO run (runtime) VALUES (?)',
             (datetime.datetime.now(),)
         )
         return cur.lastrowid
 
 
 class DatabaseFactory(object):
-    TABLE_DEF_TESTS = '''
-        CREATE TABLE tests (
+    TABLE_DEF_TEST = '''
+        CREATE TABLE test (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             path TEXT,
             module TEXT,
@@ -155,18 +172,19 @@ class DatabaseFactory(object):
     '''
 
     TABLE_DEF_RUN = '''
-        CREATE TABLE runs (
+        CREATE TABLE run (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             runtime DATETIME
         );
     '''
 
-    TABLE_DEF_FAILURES = '''
-        CREATE TABLE failures (
+    TABLE_DEF_RESULT = '''
+        CREATE TABLE result (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            testid INTEGER REFERENCES tests (id),
-            runid INTEGER REFERENCES runs (id),
-            failtime DATETIME
+            testid INTEGER REFERENCES test (id),
+            runid INTEGER REFERENCES run (id),
+            statusid INTEGER,
+            time DATETIME
         );
     '''
 
@@ -182,16 +200,16 @@ class DatabaseFactory(object):
 
         res = _Database(self.__create_database(filename))
         for run in runs:
-            res.report_failures(_Address(case) for case in run)
+            res.report_run((_Address(case), Statistic.STATUS_FAILED) for case in run)
 
         return res
 
     def __create_database(self, filename):
         sqlite = self.__connect(filename)
 
-        sqlite.execute(self.TABLE_DEF_TESTS)
-        sqlite.execute(self.TABLE_DEF_FAILURES)
+        sqlite.execute(self.TABLE_DEF_TEST)
         sqlite.execute(self.TABLE_DEF_RUN)
+        sqlite.execute(self.TABLE_DEF_RESULT)
         sqlite.commit()
 
         return sqlite

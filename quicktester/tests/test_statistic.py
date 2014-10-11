@@ -17,7 +17,11 @@ else:
 
 class TestStatistics(unittest.TestCase):
     def initialize_statistic(self):
-        return Statistic(None, dbfactory=FakeDatabaseFactory(self.results))
+        res = Statistic(None, dbfactory=FakeDatabaseFactory())
+        for result in self.results:
+            res.report_result(result)
+
+        return res
 
     def assert_failures(self, expected, backlog=1):
         self.assertSetEqual(
@@ -160,8 +164,8 @@ class FakeDatabase(object):
     def __init__(self):
         self.__runs = []
 
-    def report_failures(self, failures):
-        self.__runs.append([case.address() for case in failures])
+    def report_run(self, cases):
+        self.__runs.append([case.address() for case, _ in cases])
 
     def get_last_runid(self):
         return max(0, len(self.__runs) - 1)
@@ -179,10 +183,8 @@ class FakeDatabase(object):
 
 
 class FakeDatabaseFactory(object):
-    def __init__(self, results):
+    def __init__(self):
         self.database = FakeDatabase()
-        for result in results:
-            self.database.report_failures(case for case, _ in (result.errors + result.failures))
 
     def init_connection(self, filename):
         return self.database
