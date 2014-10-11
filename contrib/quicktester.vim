@@ -22,7 +22,7 @@ let quicktester_loaded = 1
 let g:quicktester = 1
 let g:nosefailed = 0
 
-fun! s:get_nosetest()
+fun! s:get_python()
   if exists('t:python')
     let command = t:python
   elseif exists('g:python')
@@ -31,7 +31,20 @@ fun! s:get_nosetest()
     let command = 'python'
   endif
 
-  return command . ' $(which nosetests)'
+  return command
+endfun
+
+fun! s:check_quicktester()
+  if !g:quicktester
+    return 0
+  endif
+
+  exec system(s:get_python() . ' -m quicktester')
+  return !v:shell_error
+endfun
+
+fun! s:get_nosetest()
+  return s:get_python() . ' $(which nosetests)'
 endfun
 
 fun! s:run_nosetests(...)
@@ -49,7 +62,7 @@ fun! s:run_nosetests(...)
 endfun
 
 fun! s:run_quicktest(...)
-  if !g:quicktester
+  if !s:check_quicktester()
     let args = ''
     if a:0 > 0
       let args = a:1
