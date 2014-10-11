@@ -58,6 +58,8 @@ fun! s:run_nosetests(...)
   execute command
   if v:shell_error
     let g:nosefailed = 1
+  else
+    let g:nosefailed = 0
   endif
 endfun
 
