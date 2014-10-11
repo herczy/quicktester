@@ -1,6 +1,7 @@
-PYTHON ?= $(shell which python) -B
-NOSE = $(PYTHON) $(shell which nosetests)
-BEHAVE = $(PYTHON) $(shell which behave)
+PYTHON ?= $(shell which python)
+PYTHONOPTIONS ?= -B -s
+NOSE = $(PYTHON) $(PYTHONOPTIONS) $(shell which nosetests)
+BEHAVE = $(PYTHON) $(PYTHONOPTIONS) $(shell which behave)
 
 .PHONY: all
 all: unittest features
