@@ -2,17 +2,9 @@ import tempfile
 import unittest
 import os.path
 import shutil
-import io
-import sys
 
 from ..statistic import Report, Statistic, DatabaseFactory
-
-
-if sys.version_info.major >= 3:
-    StringIO = io.StringIO
-
-else:
-    StringIO = io.BytesIO
+from . import StringIO
 
 
 class TestReport(unittest.TestCase):
