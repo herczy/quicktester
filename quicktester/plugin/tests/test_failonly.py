@@ -5,7 +5,7 @@ import tempfile
 from . import PluginTestCase, FakeDatabaseFactory
 
 from ..failonly import FailOnlyPlugin
-from ...statistic import Statistic
+from ...statistic import Report, Statistic
 from ...tests.test_statistic import FakeResult, FakeTest, TemporaryStatisticsFile, FakeDatabase
 from ...tests import FakeConfig
 from .. import DEFAULT_STATISTICS_FILE
@@ -39,9 +39,11 @@ class FailOnlyPluginTest(PluginTestCase):
         self.assertFalse(plugin.enabled)
 
     def setup_plugin(self):
-        result = FakeResult([FakeTest("/path/to/module", "module", "Test.func")])
-        result.failures.append((result.tests[0], ''))
-        self.statistics.report_result(result)
+        test = FakeTest("/path/to/module", "module", "Test.func")
+        report = Report()
+
+        report.add(test, Report.STATUS_FAILED)
+        self.statistics.report_run(report)
 
         return self.get_configured_plugin('--run-count 1', statistics_file=DEFAULT_STATISTICS_FILE)
 

@@ -10,12 +10,12 @@ import collections
 
 
 class Report(object):
-    Status = collections.namedtuple('Status', ['id', 'code', 'name'])
+    Status = collections.namedtuple('Status', ['id', 'code', 'name', 'failing'])
 
-    STATUS_PASSED = Status(0, '.', 'passed')
-    STATUS_FAILED = Status(1, 'F', 'failed')
-    STATUS_ERROR = Status(2, 'E', 'error')
-    STATUS_SKIPPED = Status(3, 'S', 'skipped')
+    STATUS_PASSED = Status(0, '.', 'passed', False)
+    STATUS_FAILED = Status(1, 'F', 'failed', True)
+    STATUS_ERROR = Status(2, 'E', 'error', True)
+    STATUS_SKIPPED = Status(3, 'S', 'skipped', True)
 
     __status_ids = {
         status.id: status for status in {STATUS_PASSED, STATUS_FAILED, STATUS_ERROR, STATUS_SKIPPED}
@@ -42,15 +42,8 @@ class Statistic(object):
 
         self.__database = dbfactory.init_connection(filename)
 
-    def report_result(self, result):
-        run_data = []
-        for error, _ in result.errors:
-            run_data.append((error, Report.STATUS_ERROR))
-
-        for failure, _ in result.failures:
-            run_data.append((failure, Report.STATUS_FAILED))
-
-        self.__database.report_run(run_data)
+    def report_run(self, report):
+        self.__database.report_run(report)
 
     def check_if_failed(self, obj, backlog):
         self.__verify_backlog(backlog)
@@ -65,10 +58,14 @@ class Statistic(object):
         test_run_ids = {}
         last_runid = self.__database.get_last_runid()
 
-        for path, module, call, runid in self.__database.get_runs(backlog):
-            key = (path, module, call)
-            test_run_ids.setdefault(key, set())
-            test_run_ids[key].add(runid)
+        for _runid in range(last_runid - backlog + 1, last_runid + 1):
+            if _runid < 0:
+                continue
+
+            for path, module, call, runid in self.__database.get_run(_runid):
+                key = (path, module, call)
+                test_run_ids.setdefault(key, set())
+                test_run_ids[key].add(runid)
 
         keys = list(test_run_ids.keys())
         keys.sort()
@@ -135,16 +132,16 @@ class _Database(object):
 
         return set((path, module, call) for path, module, call, maxid in cur if last_runid - maxid < backlog)
 
-    def get_runs(self, backlog):
+    def get_run(self, runid):
         last_runid = self.get_last_runid()
         cur = self.__connection.execute(
-            'SELECT path, module, call, runid FROM result JOIN test ' +
-            'WHERE test.id == result.testid AND runid >= ? AND result.statusid = ?' +
+            'SELECT path, module, call, runid, statusid FROM result JOIN test ' +
+            'WHERE test.id == result.testid AND runid == ?' +
             'ORDER BY runid ASC',
-            (last_runid - backlog + 1, Report.STATUS_FAILED.id)
+            (runid,)
         )
 
-        for path, module, call, runid in cur:
+        for path, module, call, runid, statusid in cur:
             yield path, module, call, last_runid - runid
 
     def __report_case(self, case, status, runid):

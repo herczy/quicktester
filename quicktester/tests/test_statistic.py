@@ -48,8 +48,8 @@ class TestReport(unittest.TestCase):
 class TestStatistics(unittest.TestCase):
     def initialize_statistic(self):
         res = Statistic(None, dbfactory=FakeDatabaseFactory())
-        for result in self.results:
-            res.report_result(result)
+        for report in self.reports:
+            res.report_run(report)
 
         return res
 
@@ -59,32 +59,42 @@ class TestStatistics(unittest.TestCase):
             self.initialize_statistic().get_failure_paths(backlog)
         )
 
+    def add_report(self, *statuses):
+        res = Report()
+        for case, status in statuses:
+            res.add(case, status)
+
+        self.reports.append(res)
+
     def setUp(self):
-        self.tests = (
-            FakeTest('/path/a/b', 'a.b', 'Test.func'),
+        self.test = FakeTest('/path/a/b', 'a.b', 'Test.func')
+        self.reports = []
+        self.add_report(
+            (self.test, Report.STATUS_PASSED)
         )
-        self.results = [
-            FakeResult(self.tests),
-        ]
 
     def test_check_if_nothing_failed(self):
         statistic = self.initialize_statistic()
 
-        self.assertFalse(statistic.check_if_failed(self.tests[0], 1))
+        self.assertFalse(statistic.check_if_failed(self.test, 1))
 
     def test_check_if_recent_failed(self):
-        self.results[0].errors.append((self.tests[0], None))
+        self.add_report(
+            (self.test, Report.STATUS_ERROR)
+        )
         statistic = self.initialize_statistic()
 
-        self.assertTrue(statistic.check_if_failed(self.tests[0], 1))
+        self.assertTrue(statistic.check_if_failed(self.test, 1))
 
     def test_check_if_nonrecent_failed(self):
-        self.results[0].errors.append((self.tests[0], None))
-        self.results.append(FakeResult(self.tests))
+        self.add_report(
+            (self.test, Report.STATUS_ERROR)
+        )
+        self.add_report()
         statistic = self.initialize_statistic()
 
-        self.assertFalse(statistic.check_if_failed(self.tests[0], 1))
-        self.assertTrue(statistic.check_if_failed(self.tests[0], 2))
+        self.assertFalse(statistic.check_if_failed(self.test, 1))
+        self.assertTrue(statistic.check_if_failed(self.test, 2))
 
     def test_report_all_passing(self):
         self.assert_failures([])
@@ -97,18 +107,27 @@ class TestStatistics(unittest.TestCase):
         self.assertRaises(ValueError, stat.check_if_failed, FakeTest('', '', ''), 0)
 
     def test_report_with_failure(self):
-        self.results[0].failures.append((self.tests[0], None))
+        self.add_report(
+            (self.test, Report.STATUS_FAILED)
+        )
 
         self.assert_failures(['/path/a/b'])
 
     def test_report_with_errors(self):
-        self.results[0].errors.append((self.tests[0], None))
+        self.add_report(
+            (self.test, Report.STATUS_ERROR)
+        )
+
 
         self.assert_failures(['/path/a/b'])
 
     def test_report_multiple_runs(self):
-        self.results[0].errors.append((self.tests[0], None))
-        self.results.append(FakeResult(self.tests))
+        self.add_report(
+            (self.test, Report.STATUS_ERROR)
+        )
+        self.add_report(
+            (self.test, Report.STATUS_PASSED)
+        )
 
         self.assert_failures([])
         self.assert_failures(['/path/a/b'], backlog=2)
@@ -119,19 +138,20 @@ class TestStatistics(unittest.TestCase):
 '''
 
     def test_dump_info(self):
+        new_test = FakeTest('/path/a/b', 'a.b', 'Test.func2')
+        self.add_report(
+            (self.test, Report.STATUS_PASSED),
+            (new_test, Report.STATUS_PASSED)
+        )
+        self.add_report(
+            (self.test, Report.STATUS_FAILED),
+            (new_test, Report.STATUS_FAILED)
+        )
+        self.add_report(
+            (self.test, Report.STATUS_ERROR),
+            (new_test, Report.STATUS_PASSED)
+        )
         statistic = self.initialize_statistic()
-        self.tests += (FakeTest('/path/a/b', 'a.b', 'Test.func2'),)
-        self.results[0].tests.append(self.tests[-1])
-
-        statistic.report_result(self.results[0])
-
-        self.results[0].errors.append((self.tests[0], ''))
-        self.results[0].errors.append((self.tests[1], ''))
-        statistic.report_result(self.results[0])
-
-        self.results[0].errors = []
-        self.results[0].failures.append((self.tests[0], ''))
-        statistic.report_result(self.results[0])
 
         f = StringIO()
         statistic.dump_info(10, relto='/path/', file=f)
@@ -165,6 +185,16 @@ class TestDatabaseFactory(unittest.TestCase):
 
             self.assertSetEqual({'a/b'}, self.initialize_statistic(f.name).get_failure_paths(1))
 
+    def test_get_run(self):
+        with tempfile.NamedTemporaryFile(prefix='quicktester.', mode='w') as f:
+            f.write('[[["a/b", "a.b", "TestCase.test_func"]]]')
+            f.flush()
+
+            self.assertListEqual(
+                [('a/b', 'a.b', 'TestCase.test_func', 0)],
+                list(DatabaseFactory().init_connection(f.name).get_run(1))
+            )
+
 
 class FakeResult(object):
     def __init__(self, tests):
@@ -194,22 +224,27 @@ class FakeDatabase(object):
     def __init__(self):
         self.__runs = []
 
-    def report_run(self, cases):
-        self.__runs.append([case.address() for case, _ in cases])
+    def report_run(self, run):
+        self.__runs.append([(case.address(), status.id) for case, status in run])
 
     def get_last_runid(self):
         return max(0, len(self.__runs) - 1)
 
     def get_failure_set(self, backlog):
-        return set(case for run in self.__runs[- backlog:] for case in run)
+        res = set()
+        for run in self.__runs[- backlog:]:
+            for case, status in run:
+                if Report.get_status_by_id(status).failing:
+                    res.add(case)
 
-    def get_runs(self, backlog):
-        for runid in range(len(self.__runs) - backlog, len(self.__runs)):
-            if runid < 0:
+        return res
+
+    def get_run(self, runid):
+        for (path, module, call), status in self.__runs[runid]:
+            if not Report.get_status_by_id(status).failing:
                 continue
 
-            for path, module, call in self.__runs[runid]:
-                yield path, module, call, self.get_last_runid() - runid
+            yield path, module, call, self.get_last_runid() - runid
 
 
 class FakeDatabaseFactory(object):

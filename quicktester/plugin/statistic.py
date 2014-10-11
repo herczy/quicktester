@@ -1,7 +1,7 @@
 import argparse
 import nose
 
-from ..statistic import Statistic
+from ..statistic import Report, Statistic
 
 from . import DEFAULT_STATISTICS_FILE
 
@@ -34,7 +34,15 @@ class StatisticsPlugin(nose.plugins.Plugin):
         self.statfile = options.statistics_file
 
     def finalize(self, result):
-        self._get_statistics(self.statfile).report_result(result)
+        report = Report()
+
+        for case, _ in result.errors:
+            report.add(case, Report.STATUS_ERROR)
+
+        for case, _ in result.failures:
+            report.add(case, Report.STATUS_FAILED)
+
+        self._get_statistics(self.statfile).report_run(report)
 
     def _get_statistics(self, filename):
         return Statistic(filename)
