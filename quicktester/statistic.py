@@ -45,13 +45,18 @@ class Statistic(object):
             dbfactory = DatabaseFactory()
 
         self.__database = dbfactory.init_connection(filename)
+        self.__failure_sets = {}
 
     def report_run(self, report):
+        self.__failure_sets.clear()
         self.__database.report_run(report)
 
     def check_if_failed(self, obj, backlog):
         self.__verify_backlog(backlog)
-        return nose.util.test_address(obj) in self.__database.get_failure_set(backlog)
+        if backlog not in self.__failure_sets:
+            self.__failure_sets[backlog] = self.__database.get_failure_set(backlog)
+
+        return nose.util.test_address(obj) in self.__failure_sets[backlog]
 
     def get_failure_paths(self, backlog):
         self.__verify_backlog(backlog)
