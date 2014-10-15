@@ -133,6 +133,9 @@ To get the 'irrelevant' positions too, use the ``--qf-irrelevant`` option:
 
   $ nosetests -Q /path/to/quickfix --qf-irrelevant
 
+*New in 0.2*: With Python versions 3+, the quickfix file will contain the
+whole exception chain.
+
 Usage in vi
 ...........
 
