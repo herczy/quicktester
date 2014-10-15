@@ -65,7 +65,7 @@ modules themselves, i.e.
 
 ::
 
-  + package
+  package
   |-- subpackage
   |   |-- tests
   |   |   `-- test_something.py
@@ -75,6 +75,26 @@ modules themselves, i.e.
   `-- module.py
 
 Otherwise all tests may not run.
+
+*New in 0.2*: Now there is a way to run tests in an alternative mapping too. The
+``external`` mapping expects the following structure:
+
+::
+
+  package
+  |-- subpackage
+  |   `-- something.py
+  `-- module.py
+  tests
+  |-- test_module.py
+  `-- subpackage
+      `-- test_something.py
+
+To turn this more on, specify the ``--filename-mapping external`` extra option:
+
+::
+
+  $ nosetests --git-changes --filename-mapping external
 
 Run only previously failed tests
 --------------------------------
