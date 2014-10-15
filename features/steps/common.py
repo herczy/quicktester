@@ -40,9 +40,19 @@ def step_impl(context):
     library.runner.assert_stderr(context, '', 'last')
 
 
+@then('the following error message is given')
+def step_impl(context):
+    library.runner.assert_stderr(context, context.text, 'last')
+
+
 @then('the command passes')
 def step_impl(context):
     library.runner.assert_return_code(context, 0, 'last')
+
+
+@then('the command fails with a code {code:d}')
+def step_impl(context, code):
+    library.runner.assert_return_code(context, code, 'last')
 
 
 @then('the {index:w} executed command prints the following')

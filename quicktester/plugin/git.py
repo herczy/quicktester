@@ -1,5 +1,8 @@
+from __future__ import print_function
+
 import os.path
 import nose
+import sys
 
 from ..git import Changes
 from ..fnmap import builtin_mappings
@@ -32,6 +35,10 @@ class GitChangesPlugin(nose.plugins.Plugin):
         if not options.git_changes:
             return
 
+        if options.filename_mapping not in builtin_mappings:
+            self._print_error('Unknown filename mapping \'{}\''.format(options.filename_mapping))
+            exit(2)
+
         variables = {
             'BASEPATH': os.getcwd(),
             'TESTDIR': 'tests',
@@ -53,3 +60,6 @@ class GitChangesPlugin(nose.plugins.Plugin):
 
     def _get_changes(self):
         return Changes()
+
+    def _print_error(self, error):
+        print(error, file=sys.stderr)

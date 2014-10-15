@@ -12,7 +12,11 @@ class TestGitChangesPlugin(PluginTestCase):
     changes = ()
 
     def plugin(self):
-        return FakeGitChangesPlugin(self.changes)
+        self.error = None
+        def _set_error(error):
+            self.error = error
+
+        return FakeGitChangesPlugin(self.changes, _set_error)
 
     def test_disabled_by_default(self):
         plugin = self.get_configured_plugin('')
@@ -75,12 +79,23 @@ class TestGitChangesPlugin(PluginTestCase):
         self.assertEqual(False, plugin.wantFile('/path/to/quicktester/tests/test_othermodule.py'))
         self.assertEqual(False, plugin.wantFile('/path/to/quicktester/quicktester/module.py'))
 
+    def test_wrong_filename_mapping_is_given(self):
+        with self.assertRaises(SystemExit) as ctx:
+            plugin = self.prepare_with_changes({}, mapping='unknown')
+
+        self.assertEqual(2, ctx.exception.code)
+        self.assertEqual('Unknown filename mapping \'unknown\'', self.error)
+
 
 class FakeGitChangesPlugin(GitChangesPlugin):
-    def __init__(self, changes):
+    def __init__(self, changes, error_func):
         self.__changes = set(changes)
+        self.error_func = error_func
 
         super(FakeGitChangesPlugin, self).__init__()
 
     def _get_changes(self):
         return frozenset(self.__changes)
+
+    def _print_error(self, error):
+        self.error_func(error)

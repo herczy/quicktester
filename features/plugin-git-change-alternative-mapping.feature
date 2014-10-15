@@ -80,3 +80,11 @@ Feature: git-changes plugin
           tests.test_module.TestExample.test_example
           tests.test_module.TestExample.test_passing
           """
+
+  Scenario: wrong filename mappings cause an error
+     When the command "nosetests -v --git-changes --filename-mapping unknown" is executed
+     Then the command fails with a code 2
+      And the following error message is given:
+          """
+          Unknown filename mapping 'unknown'
+          """
