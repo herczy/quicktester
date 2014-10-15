@@ -5,7 +5,7 @@
   a table from it and check if a file is really relevant
   to a module. Fortunately, ast.parse is really versatile. :)
 
-
+  [postponed: maybe later if this is a problem many people have]
 
 * Add contrib files and vim plugin
 
