@@ -40,6 +40,13 @@ builtin_mappings = {
         ]
     ),
 
+    'match': FilenameMapping(
+        [
+            (r'(.*/test_.*\.py)', r'\1'),
+            (r'(.*)/(.*)\.py', r'\1/tests/test_\2.py'),
+        ]
+    ),
+
     'external': FilenameMapping(
         [
             (r'(@BASEPATH@/@TESTDIR@(?:.*/test_.*\.py))', r'\1'),

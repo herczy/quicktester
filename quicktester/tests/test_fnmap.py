@@ -55,6 +55,14 @@ class TestBuiltinMappings(unittest.TestCase):
         self.assertEqual('/path/to/nonpython', mapping.map('/path/to/nonpython'))
         self.assertEqual(path, mapping.map(path))
 
+    def test_match_mapping(self):
+        mapping = builtin_mappings['match']
+        path = '/path/to/package/tests/test_something.py'
+
+        self.assertEqual('/path/to/tests/test_module.py', mapping.map('/path/to/module.py'))
+        self.assertEqual('/path/to/nonpython', mapping.map('/path/to/nonpython'))
+        self.assertEqual(path, mapping.map(path))
+
     def test_external_mapping(self):
         mapping = builtin_mappings['external']
         variables = {'BASEPATH': '/path/to/project', 'TESTDIR': 'tests'}

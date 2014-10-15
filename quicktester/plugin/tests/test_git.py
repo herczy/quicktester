@@ -69,7 +69,7 @@ class TestGitChangesPlugin(PluginTestCase):
         self.assertEqual(None, plugin.wantFile('quicktester/tests/test_git.py'))
         self.assertEqual(False, plugin.wantFile('quicktester/test_git.py'))
 
-    def test_alternative_filename_mapping(self):
+    def test_external_filename_mapping(self):
         with mock.patch('os.getcwd') as getcwd:
             getcwd.return_value = '/path/to/quicktester'
 
@@ -77,6 +77,13 @@ class TestGitChangesPlugin(PluginTestCase):
 
         self.assertEqual(None, plugin.wantDirectory('/path/to/quicktester/tests/test_module.py'))
         self.assertEqual(False, plugin.wantFile('/path/to/quicktester/tests/test_othermodule.py'))
+        self.assertEqual(False, plugin.wantFile('/path/to/quicktester/quicktester/module.py'))
+
+    def test_match_filename_mapping(self):
+        plugin = self.prepare_with_changes({'/path/to/quicktester/quicktester/module.py'}, mapping='match')
+
+        self.assertEqual(None, plugin.wantDirectory('/path/to/quicktester/quicktester/tests/test_module.py'))
+        self.assertEqual(False, plugin.wantDirectory('/path/to/quicktester/quicktester/tests/test_module2.py'))
         self.assertEqual(False, plugin.wantFile('/path/to/quicktester/quicktester/module.py'))
 
     def test_wrong_filename_mapping_is_given(self):

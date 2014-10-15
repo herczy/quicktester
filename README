@@ -76,6 +76,17 @@ modules themselves, i.e.
 
 Otherwise all tests may not run.
 
+*New in 0.2*: A further reduction of test cases is to match the names of the modules
+to the (hopefully) appropriate test module name. This only works if the test module
+names are under the package tests with the appropriate name (i.e. ``example.py`` will
+have its tests in ``tests/test_example.py``.
+
+To use the name matching, use the ``--filename-mapping match`` extra option:
+
+::
+
+  $ nosetests --git-changes --filename-mapping match
+
 *New in 0.2*: Now there is a way to run tests in an alternative mapping too. The
 ``external`` mapping expects the following structure:
 

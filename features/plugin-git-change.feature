@@ -8,23 +8,23 @@ Feature: git-changes plugin
     Given an empty package "example"
       And the plugins are installed
       And a new repository is initialized
-      And the test file "example/tests/test_example.py" is created:
+      And the test file "example/tests/test_module.py" is created:
           """
           import unittest
 
           class TestExample(unittest.TestCase):
-              def test_example(self):
+              def test_module(self):
                   self.assertEqual(0, 1)
 
               def test_passing(self):
                   self.assertEqual(1, 1)
           """
-      And the test file "example/tests/test_example2.py" is created:
+      And the test file "example/tests/test_module2.py" is created:
           """
           import unittest
 
           class TestExample2(unittest.TestCase):
-              def test_example2(self):
+              def test_module2(self):
                   self.assertEqual(0, 1)
 
               def test_passing2(self):
@@ -50,7 +50,7 @@ Feature: git-changes plugin
 
   Scenario: run tests in newly created modules:
     Given an empty package "newpackage"
-      And the test file "newpackage/test_example.py" is created:
+      And the test file "newpackage/test_module.py" is created:
           """
           import unittest
 
@@ -61,16 +61,16 @@ Feature: git-changes plugin
      When the command "nosetests -v --git-changes" is executed
      Then the following tests are run:
           """
-          newpackage.test_example.TestExample.test_mytest
+          newpackage.test_module.TestExample.test_mytest
           """
 
   Scenario: changing a test file runs only the test file
-     When the test file "example/tests/test_example.py" is changed:
+     When the test file "example/tests/test_module.py" is changed:
           """
           import unittest
 
           class TestExample(unittest.TestCase):
-              def test_example(self):
+              def test_module(self):
                   self.assertEqual(1, 1)
 
               def test_passing(self):
@@ -79,8 +79,8 @@ Feature: git-changes plugin
       And the command "nosetests -v --git-changes" is executed
      Then the following tests are run:
           """
-          example.tests.test_example.TestExample.test_example
-          example.tests.test_example.TestExample.test_passing
+          example.tests.test_module.TestExample.test_module
+          example.tests.test_module.TestExample.test_passing
           """
 
   Scenario: changing a module file runs all tests in the package
@@ -92,8 +92,21 @@ Feature: git-changes plugin
       And the command "nosetests -v --git-changes" is executed
      Then the following tests are run:
           """
-          example.tests.test_example.TestExample.test_example
-          example.tests.test_example.TestExample.test_passing
-          example.tests.test_example2.TestExample2.test_example2
-          example.tests.test_example2.TestExample2.test_passing2
+          example.tests.test_module.TestExample.test_module
+          example.tests.test_module.TestExample.test_passing
+          example.tests.test_module2.TestExample2.test_module2
+          example.tests.test_module2.TestExample2.test_passing2
+          """
+
+  Scenario: changing a module file runs all tests in the package with the name matcher
+     When the test file "example/module.py" is changed:
+          """
+          # Some module
+          # Some change
+          """
+      And the command "nosetests -v --git-changes --filename-mapping match" is executed
+     Then the following tests are run:
+          """
+          example.tests.test_module.TestExample.test_module
+          example.tests.test_module.TestExample.test_passing
           """

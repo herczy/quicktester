@@ -208,7 +208,7 @@ class Runner(object):
 
     def execute(self, command):
         result = command.execute()
-        if not command.ignore_result:
+        if not command.ignore_result and result is not None:
             self.results.append(result)
 
     def filter_results(self, group=None):
