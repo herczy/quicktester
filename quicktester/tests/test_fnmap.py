@@ -61,11 +61,11 @@ class TestBuiltinMappings(unittest.TestCase):
 
         self.assertEqual(
             '/path/to/project/tests/test_module.py',
-            mapping.map('/path/to/project/module.py', variables)
+            mapping.map('/path/to/project/package/module.py', variables)
         )
         self.assertEqual(
-            '/path/to/project/tests/package/test_module.py',
-            mapping.map('/path/to/project/package/module.py', variables)
+            '/path/to/project/tests/subpackage/test_module.py',
+            mapping.map('/path/to/project/package/subpackage/module.py', variables)
         )
         self.assertEqual('/path/to/nonpython', mapping.map('/path/to/nonpython', variables))
         self.assertEqual(
