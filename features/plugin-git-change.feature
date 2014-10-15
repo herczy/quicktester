@@ -104,7 +104,7 @@ Feature: git-changes plugin
           # Some module
           # Some change
           """
-      And the command "nosetests -v --git-changes --filename-mapping match" is executed
+      And the command "nosetests -v --git-changes --match-names" is executed
      Then the following tests are run:
           """
           example.tests.test_module.TestExample.test_module

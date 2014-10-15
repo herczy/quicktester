@@ -13,6 +13,7 @@ class GitChangesPlugin(nose.plugins.Plugin):
     name = 'git-change'
     enabled = False
     changes = None
+    parser = None
 
     def options(self, parser, env):
         parser.add_option(
@@ -21,29 +22,38 @@ class GitChangesPlugin(nose.plugins.Plugin):
             help='Run only modules where git changed'
         )
         parser.add_option(
-            '--filename-mapping',
-            default='default',
-            help='Specify the way git changes are mapped to the targets that ' +
-                 'need to be run. There are two modes: \'default\', which expects ' +
-                 'tests to be in the same structure as the packages and \'external\', ' +
-                 'in which tests are under the tests/ directory. In the second case ' +
-                 'the test for package.subpackage.module should be in ' +
-                 'tests.package.subpackage.test_module'
+            '--separate-tests',
+            metavar='TESTPATH',
+            help='If given, the tests will be assumed to be in the given directory.'
         )
+        parser.add_option(
+            '--match-names',
+            action='store_true',
+            help='If set, the plugin will try to match module names with test module names. ' +
+                 'I.e. changes in package.module will cause the package.tests.test_module to rerun.'
+        )
+        self.parser = parser
 
     def configure(self, options, config):
         if not options.git_changes:
             return
 
-        if options.filename_mapping not in builtin_mappings:
-            self._print_error('Unknown filename mapping \'{}\''.format(options.filename_mapping))
-            exit(2)
+        if options.separate_tests and options.match_names:
+            self._parser_error('--separate-tests and --match-names are mutually exclusive')
 
-        variables = {
-            'BASEPATH': os.getcwd(),
-            'TESTDIR': 'tests',
-        }
-        mapping = builtin_mappings[options.filename_mapping]
+        mapping = 'default'
+        variables = {}
+        if options.separate_tests:
+            mapping = 'external'
+            variables = {
+                'BASEPATH': os.getcwd(),
+                'TESTDIR': options.separate_tests,
+            }
+
+        elif options.match_names:
+            mapping = 'match'
+
+        mapping = builtin_mappings[mapping]
 
         self.enabled = True
         self.changes = frozenset(self.__get_relevant_changes(mapping, variables))
@@ -61,5 +71,5 @@ class GitChangesPlugin(nose.plugins.Plugin):
     def _get_changes(self):
         return Changes()
 
-    def _print_error(self, error):
-        print(error, file=sys.stderr)
+    def _parser_error(self, error):
+        self.parser.error(error)

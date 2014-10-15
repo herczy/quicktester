@@ -28,9 +28,9 @@ class TestGitChangesPlugin(PluginTestCase):
 
         self.assertTrue(plugin.enabled)
 
-    def prepare_with_changes(self, changes, mapping='default'):
+    def prepare_with_changes(self, changes, extra_options=''):
         self.changes = set(changes)
-        plugin = self.get_configured_plugin('--git-changes --filename-mapping {}'.format(mapping))
+        plugin = self.get_configured_plugin('--git-changes {}'.format(extra_options))
 
         return plugin
 
@@ -73,25 +73,23 @@ class TestGitChangesPlugin(PluginTestCase):
         with mock.patch('os.getcwd') as getcwd:
             getcwd.return_value = '/path/to/quicktester'
 
-            plugin = self.prepare_with_changes({'/path/to/quicktester/quicktester/module.py'}, mapping='external')
+            plugin = self.prepare_with_changes({'/path/to/quicktester/quicktester/module.py'}, extra_options='--separate-tests tests')
 
         self.assertEqual(None, plugin.wantDirectory('/path/to/quicktester/tests/test_module.py'))
         self.assertEqual(False, plugin.wantFile('/path/to/quicktester/tests/test_othermodule.py'))
         self.assertEqual(False, plugin.wantFile('/path/to/quicktester/quicktester/module.py'))
 
     def test_match_filename_mapping(self):
-        plugin = self.prepare_with_changes({'/path/to/quicktester/quicktester/module.py'}, mapping='match')
+        plugin = self.prepare_with_changes({'/path/to/quicktester/quicktester/module.py'}, extra_options='--match-names')
 
         self.assertEqual(None, plugin.wantDirectory('/path/to/quicktester/quicktester/tests/test_module.py'))
         self.assertEqual(False, plugin.wantDirectory('/path/to/quicktester/quicktester/tests/test_module2.py'))
         self.assertEqual(False, plugin.wantFile('/path/to/quicktester/quicktester/module.py'))
 
-    def test_wrong_filename_mapping_is_given(self):
-        with self.assertRaises(SystemExit) as ctx:
-            plugin = self.prepare_with_changes({}, mapping='unknown')
+    def test_specify_mutually_exclusive(self):
+        self.prepare_with_changes({}, extra_options='--separate-tests x --match-names')
 
-        self.assertEqual(2, ctx.exception.code)
-        self.assertEqual('Unknown filename mapping \'unknown\'', self.error)
+        self.assertNotEqual(None, self.error)
 
 
 class FakeGitChangesPlugin(GitChangesPlugin):
@@ -104,5 +102,5 @@ class FakeGitChangesPlugin(GitChangesPlugin):
     def _get_changes(self):
         return frozenset(self.__changes)
 
-    def _print_error(self, error):
+    def _parser_error(self, error):
         self.error_func(error)

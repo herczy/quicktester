@@ -46,7 +46,7 @@ Feature: git-changes plugin
           """
           Some irrelevant content
           """
-     When the command "nosetests -v --git-changes --filename-mapping external" is executed
+     When the command "nosetests -v --git-changes --separate-tests tests" is executed
      Then no tests are run
 
   Scenario: changing a test file runs only the test file
@@ -61,7 +61,7 @@ Feature: git-changes plugin
               def test_passing(self):
                   self.assertEqual(1, 1)
           """
-      And the command "nosetests -v --git-changes --filename-mapping external" is executed
+      And the command "nosetests -v --git-changes  --separate-tests tests" is executed
      Then the following tests are run:
           """
           tests.test_module.TestExample.test_example
@@ -74,17 +74,9 @@ Feature: git-changes plugin
           # Some module
           # Some change
           """
-      And the command "nosetests -v --git-changes --filename-mapping external" is executed
+      And the command "nosetests -v --git-changes  --separate-tests tests" is executed
      Then the following tests are run:
           """
           tests.test_module.TestExample.test_example
           tests.test_module.TestExample.test_passing
-          """
-
-  Scenario: wrong filename mappings cause an error
-     When the command "nosetests -v --git-changes --filename-mapping unknown" is executed
-     Then the command fails with a code 2
-      And the following error message is given:
-          """
-          Unknown filename mapping 'unknown'
           """

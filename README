@@ -81,11 +81,11 @@ to the (hopefully) appropriate test module name. This only works if the test mod
 names are under the package tests with the appropriate name (i.e. ``example.py`` will
 have its tests in ``tests/test_example.py``.
 
-To use the name matching, use the ``--filename-mapping match`` extra option:
+To use the name matching, use the ``--match-names`` extra option, i.e.:
 
 ::
 
-  $ nosetests --git-changes --filename-mapping match
+  $ nosetests --git-changes --match-names
 
 *New in 0.2*: Now there is a way to run tests in an alternative mapping too. The
 ``external`` mapping expects the following structure:
@@ -96,16 +96,16 @@ To use the name matching, use the ``--filename-mapping match`` extra option:
   |-- subpackage
   |   `-- something.py
   `-- module.py
-  tests
+  <test module>
   |-- test_module.py
   `-- subpackage
       `-- test_something.py
 
-To turn this more on, specify the ``--filename-mapping external`` extra option:
+To turn this more on, specify the ``--separate-tests <test module>`` extra option, e.g.:
 
 ::
 
-  $ nosetests --git-changes --filename-mapping external
+  $ nosetests --git-changes --separate-tests tests
 
 Run only previously failed tests
 --------------------------------
