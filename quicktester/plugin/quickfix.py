@@ -2,6 +2,16 @@ from __future__ import print_function
 
 import nose
 import os.path
+import sys
+
+
+if sys.version_info.major >= 3:
+    def _get_next_exception(exc):
+        return exc.__context__
+
+else:
+    def _get_next_exception(exc):
+        return None
 
 
 class QuickFixPlugin(nose.plugins.Plugin):
@@ -43,18 +53,28 @@ class QuickFixPlugin(nose.plugins.Plugin):
     def finalize(self, result):
         with open(self.output_filename, 'w') as f:
             for test, error in self.exceptions:
-                print('--- {}: {} ---'.format(error[0].__name__, error[1]), file=f)
-                self.__print_qf_trace(f, error[-1])
-                print(file=f)
+                self.__dump_error_chain(f, error[1], error[-1])
+
+    def __dump_error_chain(self, stream, exception, traceback):
+        while exception is not None:
+            print('--- {}: {} ---'.format(type(exception).__name__, exception), file=stream)
+
+            if hasattr(exception, '__traceback__'):
+                traceback = exception.__traceback__
+
+            self.__print_qf_trace(stream, traceback)
+            exception = _get_next_exception(exception)
+
+        print(file=stream)
 
     def __print_qf_trace(self, stream, tb):
         while tb is not None:
             frame = tb.tb_frame
             filename = os.path.relpath(frame.f_code.co_filename, os.getcwd())
-            lineno = frame.f_lineno
+            lineno = tb.tb_lineno
 
+            line = self.__get_file_line(filename, lineno)
             tb = tb.tb_next
-
             if not self.allow_irrelevant and filename.split(os.path.sep, 1)[0] == '..':
                 continue
 
