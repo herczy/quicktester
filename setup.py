@@ -70,5 +70,8 @@ setup(
             'quickfix = quicktester.plugin.quickfix:QuickFixPlugin',
         ],
     },
-    requires=requires
+    requires=requires,
+    data_files=[
+        ('share/quicktester', ['contrib/quicktester.vim']),
+    ]
 )

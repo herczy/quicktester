@@ -139,6 +139,8 @@ whole exception chain.
 Usage in vi
 ...........
 
+*New in 0.2*: Read the next section for a solution.
+
 There are multiple ways to use this plugin, the simplest being:
 
 ::
@@ -151,3 +153,24 @@ But this will print nothing. A better ``vim`` script may be:
 
   execute ':!nosetests -Q /tmp/nose-quickfix --git-changes'
   cfile /tmp/nose-quickfix
+
+VIM plugin
+----------
+
+*New in 0.2*: Now quicktester contains a Vim plugin using the quicktester
+nosetest features. The Vim plugin can be found at
+``<python prefix>/share/quicktester/quicktester.vim``. To use this plugin,
+simply copy the file into your Vim plugin directory (``~/.vim/plugin`` or
+``/usr/share/vim/plugin``.
+
+The plugin defines two commands:
+
+ * ``Nose`` will simply run nosetests without any of the quicktester plugins.
+
+ * ``Quicktest`` will run nosetests for the git changes (if there's been no failure)
+   or for the previously failed tests (if there's been a failure). If there are any
+   errors, the quickfix file will be loaded and you can navigate with the usual
+   commands (``:cf``, ``:cn``, ...)
+
+By default, the plugin uses the default Python executable, but the ``g:python`` global
+variable can be used to change this to a user-specified behavior.
