@@ -1,6 +1,6 @@
 import unittest
 
-from ..fnmap import RegexMapping, builtin_mappings
+from ..fnmap import RegexMapping, DefaultMapping, builtin_mappings
 
 
 class TestRegexMapping(unittest.TestCase):
@@ -46,15 +46,23 @@ class TestRegexMapping(unittest.TestCase):
         )
 
 
-class TestBuiltinMappings(unittest.TestCase):
-    def test_default_mapping(self):
-        mapping = builtin_mappings['default']
+class TestDefaultMapping(unittest.TestCase):
+    def setUp(self):
+        self.mapping = DefaultMapping()
+
+    def test_nonpython_file(self):
+        self.assertEqual('/path/to/nonpython', self.mapping.map('/path/to/nonpython'))
+
+    def test_python_module(self):
+        self.assertEqual('/path/to', self.mapping.map('/path/to/module.py'))
+
+    def test_python_test_module(self):
         path = '/path/to/package/tests/test_something.py'
 
-        self.assertEqual('/path/to', mapping.map('/path/to/module.py'))
-        self.assertEqual('/path/to/nonpython', mapping.map('/path/to/nonpython'))
-        self.assertEqual(path, mapping.map(path))
+        self.assertEqual(path, self.mapping.map(path))
 
+
+class TestBuiltinMappings(unittest.TestCase):
     def test_match_mapping(self):
         mapping = builtin_mappings['match']
         path = '/path/to/package/tests/test_something.py'

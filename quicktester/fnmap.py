@@ -3,7 +3,12 @@ import re
 import os.path
 
 
-class RegexMapping(object):
+class FilenameMapping(object):
+    def map(self, filename, variables):
+        raise NotImplementedError('{}.map'.format(type(self).__name__))
+
+
+class RegexMapping(FilenameMapping):
     def __init__(self, mappings):
         self.__mappings = collections.OrderedDict(mappings)
 
@@ -32,13 +37,20 @@ class RegexMapping(object):
         return res
 
 
+class DefaultMapping(FilenameMapping):
+    def map(self, filename, variables=()):
+        if not filename.endswith('.py'):
+            return filename
+
+        dirname, basename = os.path.split(filename)
+        if basename.startswith('test_'):
+            return filename
+
+        return dirname
+
+
 builtin_mappings = {
-    'default': RegexMapping(
-        [
-            (r'(.*/test_.*\.py)', r'\1'),
-            (r'(.*)/.*\.py', r'\1'),
-        ]
-    ),
+    'default': DefaultMapping(),
 
     'match': RegexMapping(
         [
