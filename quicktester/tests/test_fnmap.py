@@ -37,29 +37,28 @@ class TestNameMatchMapping(unittest.TestCase):
 
 class TestExternalNameMapping(unittest.TestCase):
     def setUp(self):
-        self.mapping = ExternalNameMapping()
-        self.variables = {'BASEPATH': '/path/to/project', 'TESTDIR': 'tests'}
+        self.mapping = ExternalNameMapping('tests', '/path/to/project')
 
     def test_nonpython_file(self):
         self.assertEqual(
             '/path/to/nonpython',
-            self.mapping.map('/path/to/nonpython', self.variables)
+            self.mapping.map('/path/to/nonpython')
         )
 
     def test_python_module(self):
         self.assertEqual(
             '/path/to/project/tests/test_module.py',
-            self.mapping.map('/path/to/project/package/module.py', self.variables)
+            self.mapping.map('/path/to/project/package/module.py')
         )
 
     def test_python_module_in_subpackage(self):
         self.assertEqual(
             '/path/to/project/tests/subpackage/test_module.py',
-            self.mapping.map('/path/to/project/package/subpackage/module.py', self.variables)
+            self.mapping.map('/path/to/project/package/subpackage/module.py')
         )
 
     def test_python_test_module(self):
         self.assertEqual(
             '/path/to/project/tests/test_something.py',
-            self.mapping.map('/path/to/project/tests/test_something.py', self.variables)
+            self.mapping.map('/path/to/project/tests/test_something.py')
         )

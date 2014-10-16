@@ -2,12 +2,12 @@ import os.path
 
 
 class FilenameMapping(object):
-    def map(self, filename, variables):
+    def map(self, filename):
         raise NotImplementedError('{}.map'.format(type(self).__name__))
 
 
 class DefaultMapping(FilenameMapping):
-    def map(self, filename, variables=()):
+    def map(self, filename):
         if not filename.endswith('.py'):
             return filename
 
@@ -21,7 +21,7 @@ class DefaultMapping(FilenameMapping):
 class NameMatchMapping(FilenameMapping):
     TEST_MODULE_PREFIX = 'test_'
 
-    def map(self, filename, variables=()):
+    def map(self, filename):
         if not filename.endswith('.py'):
             return filename
 
@@ -33,11 +33,11 @@ class NameMatchMapping(FilenameMapping):
 
 
 class ExternalNameMapping(FilenameMapping):
-    def map(self, filename, variables=()):
-        variables = dict(variables)
-        basepath = variables['BASEPATH']
-        tests = variables['TESTDIR']
+    def __init__(self, tests=None, basepath=None):
+        self.__tests = tests or 'tests'
+        self.__basepath = basepath or os.getcwd()
 
+    def map(self, filename):
         if not filename.endswith('.py'):
             return filename
 
@@ -45,6 +45,6 @@ class ExternalNameMapping(FilenameMapping):
         if basename.startswith(NameMatchMapping.TEST_MODULE_PREFIX):
             return filename
 
-        testmodule = os.path.relpath(dirname, basepath).split(os.path.sep)[1:]
+        testmodule = os.path.relpath(dirname, self.__basepath).split(os.path.sep)[1:]
         testmodule.append(NameMatchMapping.TEST_MODULE_PREFIX + basename)
-        return os.path.join(basepath, tests, *testmodule)
+        return os.path.join(self.__basepath, self.__tests, *testmodule)

@@ -41,13 +41,8 @@ class GitChangesPlugin(nose.plugins.Plugin):
         if options.separate_tests and options.match_names:
             self._parser_error('--separate-tests and --match-names are mutually exclusive')
 
-        variables = {}
         if options.separate_tests:
             mapping = ExternalNameMapping()
-            variables = {
-                'BASEPATH': os.getcwd(),
-                'TESTDIR': options.separate_tests,
-            }
 
         elif options.match_names:
             mapping = NameMatchMapping()
@@ -56,7 +51,7 @@ class GitChangesPlugin(nose.plugins.Plugin):
             mapping = DefaultMapping()
 
         self.enabled = True
-        self.changes = frozenset(self.__get_relevant_changes(mapping, variables))
+        self.changes = frozenset(self.__get_relevant_changes(mapping))
 
     def wantDirectory(self, path):
         if not any(util.is_reldir(change, path) or util.is_reldir(path, change) for change in self.changes):
@@ -64,9 +59,9 @@ class GitChangesPlugin(nose.plugins.Plugin):
 
     wantFile = wantDirectory
 
-    def __get_relevant_changes(self, mapping, variables):
+    def __get_relevant_changes(self, mapping):
         for change in self._get_changes():
-            yield mapping.map(os.path.abspath(change), variables)
+            yield mapping.map(os.path.abspath(change))
 
     def _get_changes(self):
         return Changes()
