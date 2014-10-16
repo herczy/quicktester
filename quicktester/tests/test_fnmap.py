@@ -1,49 +1,6 @@
 import unittest
 
-from ..fnmap import RegexMapping, DefaultMapping, NameMatchMapping, ExternalNameMapping
-
-
-class TestRegexMapping(unittest.TestCase):
-    def setUp(self):
-        self.mapping = RegexMapping(
-            [
-                (r'(.*/test_.*\.py)', r'\1'),
-                (r'(.*)/.*\.py', r'\1'),
-            ]
-        )
-
-    def test_map(self):
-        self.assertEqual('/path/to', self.mapping.map('/path/to/module.py'))
-
-    def test_map_maps_to_same_file(self):
-        self.assertEqual('/path/to/nonpython', self.mapping.map('/path/to/nonpython'))
-
-    def test_precedence_is_kept(self):
-        path = '/path/to/package/tests/test_something.py'
-
-        self.assertEqual(path, self.mapping.map(path))
-
-    def test_replace_variables_in_source(self):
-        workdir = '/path/to/workdir'
-        path = workdir + '/test.py'
-        altmapping = RegexMapping([(r'@WORKDIR@/(.*\.py)', r'\1'),])
-
-        self.assertEqual(path, altmapping.map(path, {'WORKDIR': '/somedir'}))
-        self.assertEqual('test.py', altmapping.map(path, {'WORKDIR': workdir}))
-
-    def test_replace_variables_in_target(self):
-        altmapping = RegexMapping([(r'.*\.py', r'@WORKDIR@'),])
-
-        self.assertEqual('workdir', altmapping.map('test_something.py', {'WORKDIR': 'workdir'}))
-
-    def test_normalize_argument_paths(self):
-        self.assertEqual('/path/to', self.mapping.map('///path/./to/some/../module.py'))
-
-    def test_normalize_result_paths(self):
-        self.assertEqual(
-            '/path/to/module.py',
-            RegexMapping([(r'(.*)', r'///path/./to/some/../module.py')]).map('')
-        )
+from ..fnmap import DefaultMapping, NameMatchMapping, ExternalNameMapping
 
 
 class TestDefaultMapping(unittest.TestCase):
