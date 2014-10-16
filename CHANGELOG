@@ -1,0 +1,28 @@
+0.2
+
+- statistics: use a new, sqlite3-based format. This statistics
+  file contains the passed tests as well. The old format can still
+  be loaded.
+- git-changes: alternative mapping. This feature makes it
+  possible to use quicktester if your tests aren't nested
+  under the tested package but rather reside in a separate
+  path.
+- git-changes: the name mapping option tries to map filenames
+  to their test modules. So if 'package/module.py' is changed,
+  'package/tests/test_module.py' is run.
+- quickfix: show the exception at the beginning of a trace. This
+  way separating what lines belong to what exceptions are
+  easier to do.
+- quickfix: In Python 3+, show the whole exception chain in
+  the quickfix file.
+- Added a VIM plugin for making quicktester easier to use with it.
+- Major test cleanup resulting in faster test runs.
+
+0.1
+
+- Initial implementation.
+- git-changes plugin for testing changed files
+- fail-only plugin for running previously failed files
+- statistics plugin for recording failures and test runs
+- quickfix plugin for displaying errors in VIM with the
+  quickfix feature
