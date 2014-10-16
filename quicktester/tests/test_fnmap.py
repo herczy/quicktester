@@ -1,6 +1,6 @@
 import unittest
 
-from ..fnmap import RegexMapping, DefaultMapping, NameMatchMapping, builtin_mappings
+from ..fnmap import RegexMapping, DefaultMapping, NameMatchMapping, ExternalNameMapping
 
 
 class TestRegexMapping(unittest.TestCase):
@@ -78,21 +78,31 @@ class TestNameMatchMapping(unittest.TestCase):
         self.assertEqual(path, self.mapping.map(path))
 
 
-class TestBuiltinMappings(unittest.TestCase):
-    def test_external_mapping(self):
-        mapping = builtin_mappings['external']
-        variables = {'BASEPATH': '/path/to/project', 'TESTDIR': 'tests'}
+class TestExternalNameMapping(unittest.TestCase):
+    def setUp(self):
+        self.mapping = ExternalNameMapping()
+        self.variables = {'BASEPATH': '/path/to/project', 'TESTDIR': 'tests'}
 
+    def test_nonpython_file(self):
+        self.assertEqual(
+            '/path/to/nonpython',
+            self.mapping.map('/path/to/nonpython', self.variables)
+        )
+
+    def test_python_module(self):
         self.assertEqual(
             '/path/to/project/tests/test_module.py',
-            mapping.map('/path/to/project/package/module.py', variables)
+            self.mapping.map('/path/to/project/package/module.py', self.variables)
         )
+
+    def test_python_module_in_subpackage(self):
         self.assertEqual(
             '/path/to/project/tests/subpackage/test_module.py',
-            mapping.map('/path/to/project/package/subpackage/module.py', variables)
+            self.mapping.map('/path/to/project/package/subpackage/module.py', self.variables)
         )
-        self.assertEqual('/path/to/nonpython', mapping.map('/path/to/nonpython', variables))
+
+    def test_python_test_module(self):
         self.assertEqual(
             '/path/to/project/tests/test_something.py',
-            mapping.map('/path/to/project/tests/test_something.py', variables)
+            self.mapping.map('/path/to/project/tests/test_something.py', self.variables)
         )
