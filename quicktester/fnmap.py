@@ -48,10 +48,3 @@ class ExternalNameMapping(FilenameMapping):
         testmodule = os.path.relpath(dirname, basepath).split(os.path.sep)[1:]
         testmodule.append(NameMatchMapping.TEST_MODULE_PREFIX + basename)
         return os.path.join(basepath, tests, *testmodule)
-
-
-builtin_mappings = {
-    'default': DefaultMapping(),
-    'match': NameMatchMapping(),
-    'external': ExternalNameMapping()
-}

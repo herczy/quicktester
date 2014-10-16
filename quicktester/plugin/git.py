@@ -5,7 +5,7 @@ import nose
 import sys
 
 from ..git import Changes
-from ..fnmap import builtin_mappings
+from ..fnmap import DefaultMapping, NameMatchMapping, ExternalNameMapping
 from .. import util
 
 
@@ -41,19 +41,19 @@ class GitChangesPlugin(nose.plugins.Plugin):
         if options.separate_tests and options.match_names:
             self._parser_error('--separate-tests and --match-names are mutually exclusive')
 
-        mapping = 'default'
         variables = {}
         if options.separate_tests:
-            mapping = 'external'
+            mapping = ExternalNameMapping()
             variables = {
                 'BASEPATH': os.getcwd(),
                 'TESTDIR': options.separate_tests,
             }
 
         elif options.match_names:
-            mapping = 'match'
+            mapping = NameMatchMapping()
 
-        mapping = builtin_mappings[mapping]
+        else:
+            mapping = DefaultMapping()
 
         self.enabled = True
         self.changes = frozenset(self.__get_relevant_changes(mapping, variables))
