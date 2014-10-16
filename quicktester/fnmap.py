@@ -3,7 +3,7 @@ import re
 import os.path
 
 
-class FilenameMapping(object):
+class RegexMapping(object):
     def __init__(self, mappings):
         self.__mappings = collections.OrderedDict(mappings)
 
@@ -33,21 +33,21 @@ class FilenameMapping(object):
 
 
 builtin_mappings = {
-    'default': FilenameMapping(
+    'default': RegexMapping(
         [
             (r'(.*/test_.*\.py)', r'\1'),
             (r'(.*)/.*\.py', r'\1'),
         ]
     ),
 
-    'match': FilenameMapping(
+    'match': RegexMapping(
         [
             (r'(.*/test_.*\.py)', r'\1'),
             (r'(.*)/(.*)\.py', r'\1/tests/test_\2.py'),
         ]
     ),
 
-    'external': FilenameMapping(
+    'external': RegexMapping(
         [
             (r'(@BASEPATH@/@TESTDIR@(?:.*/test_.*\.py))', r'\1'),
             (r'@BASEPATH@/[^/]+((?:/[^/]+)*/)(.*\.py)', r'@BASEPATH@/@TESTDIR@\1test_\2'),

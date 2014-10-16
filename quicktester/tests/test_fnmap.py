@@ -1,11 +1,11 @@
 import unittest
 
-from ..fnmap import FilenameMapping, builtin_mappings
+from ..fnmap import RegexMapping, builtin_mappings
 
 
-class TestFilenameMapping(unittest.TestCase):
+class TestRegexMapping(unittest.TestCase):
     def setUp(self):
-        self.mapping = FilenameMapping(
+        self.mapping = RegexMapping(
             [
                 (r'(.*/test_.*\.py)', r'\1'),
                 (r'(.*)/.*\.py', r'\1'),
@@ -26,13 +26,13 @@ class TestFilenameMapping(unittest.TestCase):
     def test_replace_variables_in_source(self):
         workdir = '/path/to/workdir'
         path = workdir + '/test.py'
-        altmapping = FilenameMapping([(r'@WORKDIR@/(.*\.py)', r'\1'),])
+        altmapping = RegexMapping([(r'@WORKDIR@/(.*\.py)', r'\1'),])
 
         self.assertEqual(path, altmapping.map(path, {'WORKDIR': '/somedir'}))
         self.assertEqual('test.py', altmapping.map(path, {'WORKDIR': workdir}))
 
     def test_replace_variables_in_target(self):
-        altmapping = FilenameMapping([(r'.*\.py', r'@WORKDIR@'),])
+        altmapping = RegexMapping([(r'.*\.py', r'@WORKDIR@'),])
 
         self.assertEqual('workdir', altmapping.map('test_something.py', {'WORKDIR': 'workdir'}))
 
@@ -42,7 +42,7 @@ class TestFilenameMapping(unittest.TestCase):
     def test_normalize_result_paths(self):
         self.assertEqual(
             '/path/to/module.py',
-            FilenameMapping([(r'(.*)', r'///path/./to/some/../module.py')]).map('')
+            RegexMapping([(r'(.*)', r'///path/./to/some/../module.py')]).map('')
         )
 
 
