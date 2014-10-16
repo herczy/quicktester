@@ -49,15 +49,23 @@ class DefaultMapping(FilenameMapping):
         return dirname
 
 
+class NameMatchMapping(FilenameMapping):
+    TEST_MODULE_PREFIX = 'test_'
+
+    def map(self, filename, variables=()):
+        if not filename.endswith('.py'):
+            return filename
+
+        dirname, basename = os.path.split(filename)
+        if basename.startswith(self.TEST_MODULE_PREFIX):
+            return filename
+
+        return os.path.join(dirname, 'tests', self.TEST_MODULE_PREFIX + basename)
+
+
 builtin_mappings = {
     'default': DefaultMapping(),
-
-    'match': RegexMapping(
-        [
-            (r'(.*/test_.*\.py)', r'\1'),
-            (r'(.*)/(.*)\.py', r'\1/tests/test_\2.py'),
-        ]
-    ),
+    'match': NameMatchMapping(),
 
     'external': RegexMapping(
         [
