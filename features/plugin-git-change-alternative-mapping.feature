@@ -8,7 +8,6 @@ Feature: git-changes plugin
     Given an empty package "example"
       And an empty package "tests"
       And the plugins are installed
-      And a new repository is initialized
       And the test file "tests/test_module.py" is created:
           """
           import unittest
@@ -39,7 +38,7 @@ Feature: git-changes plugin
           """
           # Some other module
           """
-      And all changes are committed
+      And a new repository is initialized with the new files
 
   Scenario: ignoring non-python files
     Given the root file "junk.txt" is created:

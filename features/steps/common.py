@@ -74,13 +74,9 @@ def step_impl(context, fullname):
     library.Assert.set_equal({fullname}, set(tests.keys()))
 
 
-@given('a new repository is initialized')
+@given('a new repository is initialized with the new files')
 def step_impl(context):
     library.runner.execute_command(context, 'git-init')
-
-
-@given('all changes are committed')
-def step_impl(context):
     library.runner.execute_command(context, 'git-commit')
 
 

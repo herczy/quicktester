@@ -6,17 +6,19 @@ import mock
 from . import PluginTestCase
 
 from ..git import GitChangesPlugin
+from ...git import GitError
 
 
 class TestGitChangesPlugin(PluginTestCase):
     changes = ()
+    raise_error = None
 
     def plugin(self):
         self.error = None
         def _set_error(error):
             self.error = error
 
-        return FakeGitChangesPlugin(self.changes, _set_error)
+        return FakeGitChangesPlugin(self.changes, _set_error, self.raise_error)
 
     def test_disabled_by_default(self):
         plugin = self.get_configured_plugin('')
@@ -28,8 +30,9 @@ class TestGitChangesPlugin(PluginTestCase):
 
         self.assertTrue(plugin.enabled)
 
-    def prepare_with_changes(self, changes, extra_options=''):
+    def prepare_with_changes(self, changes, extra_options='', raise_error=None):
         self.changes = set(changes)
+        self.raise_error = raise_error
         plugin = self.get_configured_plugin('--git-changes {}'.format(extra_options))
 
         return plugin
@@ -91,15 +94,31 @@ class TestGitChangesPlugin(PluginTestCase):
 
         self.assertNotEqual(None, self.error)
 
+    def test_not_a_git_directory(self):
+        plugin = self.prepare_with_changes(
+            {},
+            raise_error=GitError(
+                'Not a git repository',
+                'fatal: Not a git repository (or any of the parent directories): .git\n',
+                128
+            )
+        )
+
+        self.assertFalse(plugin.enabled)
+
 
 class FakeGitChangesPlugin(GitChangesPlugin):
-    def __init__(self, changes, error_func):
+    def __init__(self, changes, error_func, raise_error):
         self.__changes = set(changes)
         self.error_func = error_func
+        self.raise_error = raise_error
 
         super(FakeGitChangesPlugin, self).__init__()
 
     def _get_changes(self):
+        if self.raise_error is not None:
+            raise self.raise_error
+
         return frozenset(self.__changes)
 
     def _parser_error(self, error):

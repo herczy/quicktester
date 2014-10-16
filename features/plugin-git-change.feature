@@ -7,7 +7,6 @@ Feature: git-changes plugin
   Background:
     Given an empty package "example"
       And the plugins are installed
-      And a new repository is initialized
       And the test file "example/tests/test_module.py" is created:
           """
           import unittest
@@ -34,14 +33,15 @@ Feature: git-changes plugin
           """
           # Some module
           """
-      And all changes are committed
 
   Scenario: no changes are in the repository
+    Given a new repository is initialized with the new files
      When the command "nosetests -v --git-changes" is executed
      Then no tests are run
 
   Scenario: ignoring non-python files
-    Given the root file "junk.txt" is created:
+    Given a new repository is initialized with the new files
+      And the root file "junk.txt" is created:
           """
           Some irrelevant content
           """
@@ -49,7 +49,8 @@ Feature: git-changes plugin
      Then no tests are run
 
   Scenario: run tests in newly created modules:
-    Given an empty package "newpackage"
+    Given a new repository is initialized with the new files
+      And an empty package "newpackage"
       And the test file "newpackage/test_module.py" is created:
           """
           import unittest
@@ -65,6 +66,7 @@ Feature: git-changes plugin
           """
 
   Scenario: changing a test file runs only the test file
+    Given a new repository is initialized with the new files
      When the test file "example/tests/test_module.py" is changed:
           """
           import unittest
@@ -84,6 +86,7 @@ Feature: git-changes plugin
           """
 
   Scenario: changing a module file runs all tests in the package
+    Given a new repository is initialized with the new files
      When the test file "example/module.py" is changed:
           """
           # Some module
@@ -99,6 +102,7 @@ Feature: git-changes plugin
           """
 
   Scenario: changing a module file runs all tests in the package with the name matcher
+    Given a new repository is initialized with the new files
      When the test file "example/module.py" is changed:
           """
           # Some module
@@ -109,4 +113,14 @@ Feature: git-changes plugin
           """
           example.tests.test_module.TestExample.test_module
           example.tests.test_module.TestExample.test_passing
+          """
+
+  Scenario: running the git-changes plugin in a non-git directory does nothing
+     When the command "nosetests -v --git-changes" is executed
+     Then the following tests are run:
+          """
+          example.tests.test_module.TestExample.test_module
+          example.tests.test_module.TestExample.test_passing
+          example.tests.test_module2.TestExample2.test_module2
+          example.tests.test_module2.TestExample2.test_passing2
           """
