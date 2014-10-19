@@ -53,19 +53,30 @@ class QuickFixPlugin(nose.plugins.Plugin):
     def finalize(self, result):
         with open(self.output_filename, 'w') as f:
             for test, error in self.exceptions:
-                self.__dump_error_chain(f, error[1], error[-1])
+                exc_type, exc_value, exc_trace = error
+                self.__dump_error_chain(f, exc_type, exc_value, exc_trace)
+                print(file=f)
 
-    def __dump_error_chain(self, stream, exception, traceback):
-        while exception is not None:
-            print('--- {}: {} ---'.format(type(exception).__name__, exception), file=stream)
+    def __dump_error_chain(self, stream, exc_type, exception, traceback):
+        if isinstance(exception, str):
+            exception = exception.split('\n', 1)[0]
 
-            if hasattr(exception, '__traceback__'):
-                traceback = exception.__traceback__
+        print('--- {}: {} ---'.format(exc_type.__name__, exception), file=stream)
 
+        if traceback is None and hasattr(exception, '__traceback__'):
+            traceback = exception.__traceback__
+
+        if traceback is not None:
             self.__print_qf_trace(stream, traceback)
+
+        if isinstance(exception, str):
+            exception = None
+
+        else:
             exception = _get_next_exception(exception)
 
-        print(file=stream)
+        if exception:
+            self.__dump_error_chain(stream, type(exception), exception, None)
 
     def __print_qf_trace(self, stream, tb):
         while tb is not None:

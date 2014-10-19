@@ -11,8 +11,25 @@ def __check_need_run(tag):
     return True
 
 
+def __check_require(tag):
+    if not tag.startswith('require-package:'):
+        return True
+
+    name = tag.rsplit(':', 1)[-1]
+
+    try:
+        __import__(name)
+        return True
+
+    except ImportError:
+        return False
+
+
+__tag_checks = [__check_need_run, __check_require]
+
+
 def __mark_unrunnable(obj):
-    if not all(__check_need_run(tag) for tag in obj.tags):
+    if not all(all(func(tag) for func in __tag_checks) for tag in obj.tags):
         obj.mark_skipped()
 
 
