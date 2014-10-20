@@ -179,6 +179,19 @@ class TestStatistics(unittest.TestCase):
 
         self.assertEqual(self.EXPECTED_LIMITED_OUTPUT, f.getvalue())
 
+    EXPECTED_DUMP_ALL_OUTPUT = '''\
+[      . S.] ../otherpath/a/b:a.b:Test.func2
+[     . .FE] a/b:a.b:Test.func
+'''
+
+    def test_dump_all_info(self):
+        statistic = self.__prepare_statistics(new_test_base_path='/otherpath/')
+
+        f = StringIO()
+        statistic.dump_info(10, relto='/path/', dump_all=True, file=f)
+
+        self.assertEqual(self.EXPECTED_DUMP_ALL_OUTPUT, f.getvalue())
+
 
 class FakeResult(object):
     def __init__(self, tests):

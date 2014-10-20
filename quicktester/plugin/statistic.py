@@ -63,8 +63,10 @@ def quicktester_statistics():
                         help='Statistics file (default: %(default)s)')
     parser.add_argument('-b', '--backlog', default=10, type=int,
                         help='Backlog to show (default: %(default)s)')
+    parser.add_argument('-a', '--show-all-tests', action='store_true', default=False,
+                        help='Show statistics for all tests collected')
 
     options = parser.parse_args()
 
-    Statistic(options.file).dump_info(options.backlog)
+    Statistic(options.file).dump_info(options.backlog, dump_all=options.show_all_tests)
     return 0

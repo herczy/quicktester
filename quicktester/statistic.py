@@ -64,7 +64,7 @@ class Statistic(object):
         self.__verify_backlog(backlog)
         return set(path for path, _, _ in self.__database.get_failure_set(backlog))
 
-    def dump_info(self, backlog, relto='.', file=sys.stdout):
+    def dump_info(self, backlog, relto='.', dump_all=False, file=sys.stdout):
         self.__verify_backlog(backlog)
         last_runid = self.__database.get_last_runid()
 
@@ -76,7 +76,7 @@ class Statistic(object):
                 continue
 
             for path, module, call, status in self.__database.get_run(runid):
-                if not util.is_reldir(path, relto):
+                if not dump_all and not util.is_reldir(path, relto):
                     continue
 
                 addr = (path, module, call)
