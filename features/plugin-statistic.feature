@@ -84,3 +84,36 @@ Feature: the command-line statistics tool
           [  F ] example/tests/test_example.py:example.tests.test_example:TestExample.test_example
           """
       And the last executed command passes
+
+  Scenario: only statistics relative to the current working directory are shown by default
+    Given the plugins are installed
+      And an empty package "other"
+     When the test file "example/tests/test_example.py" is created:
+          """
+          import unittest
+
+          class TestExample(unittest.TestCase):
+              def test_example(self):
+                  self.assertEqual(0, 1)
+          """
+      And the test file "other/test_other.py" is created:
+          """
+          import unittest
+
+          class TestOtherExample(unittest.TestCase):
+              def test_zero_equals_one(self):
+                  self.assertEqual(0, 1)
+          """
+      And the command "nosetests" is executed
+      And the command "quicktester-statistics --backlog 1" is executed
+      And the command "quicktester-statistics --backlog 1" is executed in "other"
+     Then the last two executed commands pass
+      And the penultimate executed command prints the following:
+          """
+          [F] example/tests/test_example.py:example.tests.test_example:TestExample.test_example
+          [F] other/test_other.py:other.test_other:TestOtherExample.test_zero_equals_one
+          """
+      And the last executed command prints the following:
+          """
+          [F] test_other.py:other.test_other:TestOtherExample.test_zero_equals_one
+          """

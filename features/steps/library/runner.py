@@ -37,11 +37,13 @@ class Result(object):
         self.returncode = returncode
         self.stdout = stdout
         self.stderr = stderr
+        self.cwd = os.getcwd()
 
     def dump(self, file=sys.stdout):
         print('----- BEGIN COMMAND RESULTS -----', file=file)
         print('Command:', self.command, file=file)
         print('Return code:', self.returncode, file=file)
+        print('Working directory', self.cwd, file=file)
 
         print('Standard output:', file=file)
         print(ident('----- BEGIN STDOUT -----'), file=file)
@@ -189,6 +191,7 @@ class GitCommitCommand(CustomCommand):
 class Runner(object):
     HUMAN_READABLE_INDEXES = {
         'first': 0,
+        'penultimate': -2,
         'last': -1,
     }
 
@@ -206,10 +209,16 @@ class Runner(object):
         self.results = []
         self.tempfiles = {}
 
-    def execute(self, command):
-        result = command.execute()
-        if not command.ignore_result and result is not None:
-            self.results.append(result)
+    def execute(self, command, where='.'):
+        oldcwd = os.getcwd()
+        try:
+            os.chdir(where)
+            result = command.execute()
+            if not command.ignore_result and result is not None:
+                self.results.append(result)
+
+        finally:
+            os.chdir(oldcwd)
 
     def filter_results(self, group=None):
         if group is None:
@@ -217,14 +226,28 @@ class Runner(object):
 
         return [result for result in self.results if result.command.group == group]
 
-    def get_result(self, index, group=None):
+    def get_index_by_name(self, index):
         if isinstance(index, string_types):
             if not index in self.HUMAN_READABLE_INDEXES:
                 raise AssertionError("Unknown human-readable index {!r}".format(index))
 
-            index = self.HUMAN_READABLE_INDEXES[index]
+            return self.HUMAN_READABLE_INDEXES[index]
 
-        return self.filter_results(group)[index]
+        assert isinstance(index, int)
+        return index
+
+    def get_result(self, index, group=None):
+        return self.filter_results(group)[self.get_index_by_name(index)]
+
+    def get_result_range(self, begin, end=None, group=None):
+        if end is None:
+            rslice = slice(self.get_index_by_name(begin), None)
+
+        else:
+            rslice = slice(self.get_index_by_name(begin), self.get_index_by_name(end))
+
+        for result in self.filter_results(group)[rslice]:
+            yield result
 
     @classmethod
     def create_command(cls, command, *args, **kwargs):
@@ -251,7 +274,7 @@ def initialize_runner_context(context):
     context.runner = Runner()
 
 
-def execute_command(context, command, repeat=1):
+def execute_command(context, command, repeat=1, where='.'):
     verify_runner(context)
 
     if not isinstance(command, Command):
@@ -259,7 +282,7 @@ def execute_command(context, command, repeat=1):
         command = Runner.create_command(command)
 
     for _ in range(repeat):
-        context.runner.execute(command)
+        context.runner.execute(command, where=where)
 
 
 def get_result(context, index, group=None):
@@ -288,6 +311,18 @@ def assert_stdout(context, expected_stdout, index, group=None):
 
 def assert_stderr(context, expected_stderr, index, group=None):
     __assert_result(context, 'stderr', expected_stderr, index, group=group)
+
+
+def assert_return_code_range(context, expected_return_code, index_begin, index_end=None, group=None):
+    verify_runner(context)
+
+    for result in context.runner.get_result_range(index_begin, index_end):
+        try:
+            Assert.equal(expected_return_code, result.returncode)
+
+        except:
+            result.dump()
+            raise
 
 
 def __make_file_assertion(func):

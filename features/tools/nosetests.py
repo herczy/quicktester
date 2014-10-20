@@ -27,4 +27,7 @@ if os.getenv('QUICKTESTER_NOSE_PRINT_INFO', 'no') == 'yes':
 
     print('----- END INFO -----', file=sys.stderr)
 
+stat_path = os.path.join(os.getenv('QUICKTESTER_BEHAVE_PATH'), '.quicktester-statistics')
+sys.argv[1:1] = ['--statistics-file', stat_path]
+
 sys.exit(load_entry_point('nose', 'console_scripts', 'nosetests')())

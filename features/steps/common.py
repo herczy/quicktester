@@ -30,8 +30,9 @@ def step_impl(context, kind, filename):
 
 @when('the command "{command}" is executed')
 @when('the command "{command}" is executed {repeat:d} times')
-def step_impl(context, command, repeat=1):
-    library.runner.execute_command(context, command, repeat=repeat)
+@when('the command "{command}" is executed in "{where}"')
+def step_impl(context, command, repeat=1, where='.'):
+    library.runner.execute_command(context, command, repeat=repeat, where=where)
 
 
 @then('the command does not print anything')
@@ -45,25 +46,22 @@ def step_impl(context):
     library.runner.assert_stderr(context, context.text, 'last')
 
 
-@then('the command passes')
-def step_impl(context):
-    library.runner.assert_return_code(context, 0, 'last')
-
-
-@then('the command fails with a code {code:d}')
-def step_impl(context, code):
-    library.runner.assert_return_code(context, code, 'last')
-
-
 @then('the {index:w} executed command prints the following')
 def step_impl(context, index):
-    library.runner.assert_stdout(context, context.text, 'last')
-    library.runner.assert_stderr(context, '', 'last')
+    library.runner.assert_stdout(context, context.text, index)
+    library.runner.assert_stderr(context, '', index)
 
 
 @then('the {index:w} executed command passes')
-def step_impl(context, index):
-    library.runner.assert_return_code(context, 0, index)
+@then('the command fails with a code {code:d}')
+@then('the command passes')
+def step_impl(context, index='last', code=0):
+    library.runner.assert_return_code(context, code, index)
+
+
+@then('the last two executed commands pass')
+def step_impl(context):
+    library.runner.assert_return_code_range(context, 0, 'penultimate')
 
 
 @then('only the "{fullname}" tests has beed rerun')

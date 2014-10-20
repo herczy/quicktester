@@ -8,6 +8,8 @@ import datetime
 import sqlite3
 import collections
 
+from . import util
+
 
 class Report(object):
     Status = collections.namedtuple('Status', ['id', 'code', 'name', 'failing'])
@@ -74,6 +76,9 @@ class Statistic(object):
                 continue
 
             for path, module, call, status in self.__database.get_run(runid):
+                if not util.is_reldir(path, relto):
+                    continue
+
                 addr = (path, module, call)
                 test_runs.setdefault(addr, {})
                 test_runs[addr][runid] = status

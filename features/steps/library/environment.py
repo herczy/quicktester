@@ -30,8 +30,10 @@ class RunEnvironment(object):
     def __init__(self):
         self.__directory = self.mkdtemp(prefix='quicktester-behave-')
         self.__working_dir = os.getcwd()
+        os.environ['QUICKTESTER_BEHAVE_PATH'] = self.__directory
 
     def __del__(self):
+        del os.environ['QUICKTESTER_BEHAVE_PATH']
         self.rmdtemp(self.__directory)
 
     def enter(self):
