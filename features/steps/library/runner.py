@@ -7,6 +7,7 @@ import shutil
 import subprocess
 import re
 import tempfile
+import json
 
 from .assertfunc import Assert
 from .path import tools_path, git_repo_path
@@ -307,6 +308,44 @@ def assert_return_code(context, expected_return_code, index, group=None):
 
 def assert_stdout(context, expected_stdout, index, group=None):
     __assert_result(context, 'stdout', expected_stdout, index, group=group)
+
+
+def assert_stdout_json(context, expected_stdout, index, group=None):
+    verify_runner(context)
+
+    def _collect_remove(etalon, json_data):
+        if isinstance(json_data, dict):
+            res = {}
+            for name, value in json_data.items():
+                if name in etalon:
+                    value = _collect_remove(value, etalon[name])
+
+                res[name] = value
+
+            return res
+
+        elif isinstance(json_data, list):
+            res = []
+            for index, value in enumerate(json_data):
+                if index < len(etalon):
+                    value = _collect_remove(value, etalon[index])
+
+                res.append(value)
+
+            return res
+
+        elif etalon == '@REMOVED@' and isinstance(json_data, string_types):
+            return etalon
+
+        else:
+            return json_data
+
+    result = get_result(context, index, group=group)
+
+    json_etalon = json.loads(expected_stdout)
+    json_actual = _collect_remove(json_etalon, json.loads(result.stdout))
+
+    Assert.equal(json_etalon, json_actual)
 
 
 def assert_stderr(context, expected_stderr, index, group=None):

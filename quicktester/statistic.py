@@ -3,6 +3,8 @@ from __future__ import print_function
 import sys
 import json
 import nose
+import time
+import json
 import os.path
 import datetime
 import sqlite3
@@ -68,7 +70,7 @@ class Statistic(object):
         self.__verify_backlog(backlog)
         return set(path for path, _, _ in self.__database.get_failure_set(backlog))
 
-    def dump_info(self, backlog, relto='.', dump_all=False, failonly=False, file=sys.stdout):
+    def dump_info(self, backlog, relto='.', dump_all=False, failonly=False, format_json=False, file=sys.stdout):
         self.__verify_backlog(backlog)
         last_runid = self.__database.get_last_runid()
 
@@ -79,17 +81,21 @@ class Statistic(object):
             if runid < 0:
                 continue
 
-            for path, module, call, status in self.__database.get_run(runid):
+            for path, module, call, status, runtime in self.__database.get_run(runid):
                 if not dump_all and not util.is_reldir(path, relto):
                     continue
 
-                addr = (path, module, call)
+                addr = (os.path.relpath(path, relto), module, call)
                 test_runs.setdefault(addr, {})
-                test_runs[addr][runid] = status
+                test_runs[addr][runid] = (status, runtime)
 
         if failonly:
             test_runs = self.__filter_has_failing(test_runs)
 
+        report = self.__report_json if format_json else self.__report_text
+        report(test_runs, display_range, file)
+
+    def __report_text(self, test_runs, display_range, file):
         keys = list(test_runs.keys())
         keys.sort(key=self.__sanitize_address)
 
@@ -98,7 +104,7 @@ class Statistic(object):
             key = (path, module, call)
             runbar = self.__get_runbar(test_runs[key], display_range)
 
-            address = self.__sanitize_address((os.path.relpath(path, relto), module, call))
+            address = self.__sanitize_address(key)
 
             print('[{}] {}'.format(runbar, address), file=file)
             count += 1
@@ -107,6 +113,45 @@ class Statistic(object):
             print(file=file)
 
         print('{} test(s) out of {} shown'.format(count, self.__database.get_test_count()), file=file)
+
+    def __report_json(self, test_runs, display_range, file):
+        count = len(test_runs)
+        test_runs = self.__swap_test_runs(test_runs)
+
+        runs = []
+        tests = set()
+        for runid in range(display_range[0], display_range[1] + 1):
+            run = []
+            for addr, result in test_runs.get(runid, {}).items():
+                path, module, call = addr
+                status, runtime = result
+
+                with open('/tmp/.time', 'a') as a:
+                    print(repr(runtime), file=a)
+
+                run.append(
+                    {
+                        "path": path,
+                        "module": module,
+                        "call": call,
+                        "runtime": runtime.strftime("%Y-%m-%d %H:%M +0000"),
+                        "status": status.name,
+                    }
+                )
+            runs.append(run)
+
+        summary = {"total": self.__database.get_test_count(), "shown": count}
+
+        print(json.dumps({"runs": runs, "summary": summary}, indent=4, separators=(', ', ': ')), file=file)
+
+    def __swap_test_runs(self, test_runs):
+        res = {}
+        for addr, runs in test_runs.items():
+            for runid, status in runs.items():
+                res.setdefault(runid, {})
+                res[runid][addr] = status
+
+        return res
 
     def __sanitize_address(self, key):
         path, module, call = key
@@ -118,7 +163,7 @@ class Statistic(object):
     def __filter_has_failing(self, runs):
         has_failing = set()
         for addr, run in runs.items():
-            if any(status.failing for status in run.values()):
+            if any(status.failing for status, _ in run.values()):
                 has_failing.add(addr)
 
         return {addr: run for addr, run in runs.items() if addr in has_failing}
@@ -134,7 +179,7 @@ class Statistic(object):
                 res.append(' ')
                 continue
 
-            res.append(test_run[runid].code)
+            res.append(test_run[runid][0].code)
 
         return ''.join(res)
 
@@ -181,14 +226,14 @@ class _Database(object):
     def get_run(self, runid):
         last_runid = self.get_last_runid()
         cur = self.__connection.execute(
-            'SELECT path, module, call, statusid FROM result JOIN test ' +
+            'SELECT path, module, call, statusid, result.time AS "[timestamp]" FROM result JOIN test ' +
             'WHERE test.id == result.testid AND runid == ?' +
             'ORDER BY runid ASC',
             (runid,)
         )
 
-        for path, module, call, statusid in cur:
-            yield path, module, call, Report.get_status_by_id(statusid)
+        for path, module, call, statusid, runtime in cur:
+            yield path, module, call, Report.get_status_by_id(statusid), runtime
 
     def get_test_count(self):
         cur = self.__connection.execute('SELECT count(*) FROM test')
@@ -280,7 +325,10 @@ class DatabaseFactory(object):
         return sqlite
 
     def __connect(self, filename):
-        return sqlite3.connect(filename or ':memory:')
+        return sqlite3.connect(
+            filename or ':memory:',
+            detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES
+        )
 
     def __is_legacy_format(self, filename):
         with open(filename, 'rb') as f:

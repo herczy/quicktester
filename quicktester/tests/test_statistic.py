@@ -1,3 +1,6 @@
+import json
+import datetime
+import time
 import tempfile
 import unittest
 import os.path
@@ -227,12 +230,35 @@ class TestStatistics(unittest.TestCase):
 '''
 
     def test_dump_failonly_info(self):
-        statistic = self.__prepare_statistics(new_test_base_path='/otherpath/')
+        statistic = self.__prepare_statistics()
 
         f = StringIO()
         statistic.dump_info(10, relto='/path/', failonly=True, file=f)
 
         self.assertEqual(self.EXPECTED_FAILONLY_OUTPUT, f.getvalue())
+
+    EXPECTED_JSON_OUTPUT = {
+        "runs": [
+            [
+                {
+                    "path": "a/b",
+                    "module": "a.b",
+                    "call": "Test.func",
+                    "runtime": time.strftime("%Y-%m-%d %H:%M +0000", time.gmtime(0)),
+                    "status": "error",
+                }
+            ]
+        ],
+        "summary": {"total": 3, "shown": 1}
+    }
+
+    def test_dump_json_info(self):
+        statistic = self.__prepare_statistics()
+
+        f = StringIO()
+        statistic.dump_info(1, relto='/path/', failonly=True, format_json=True, file=f)
+
+        self.assertEqual(self.EXPECTED_JSON_OUTPUT, json.loads(f.getvalue()))
 
 
 class FakeResult(object):
@@ -278,9 +304,10 @@ class FakeDatabase(object):
 
         return res
 
+    EPOCH = datetime.datetime(1970, 1, 1)
     def get_run(self, runid):
         for (path, module, call), status in self.__runs[runid]:
-            yield path, module, call, Report.get_status_by_id(status)
+            yield path, module, call, Report.get_status_by_id(status), self.EPOCH
 
     def get_test_count(self):
         tests = set()

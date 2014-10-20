@@ -183,3 +183,39 @@ Feature: the command-line statistics tool
 
           1 test(s) out of 2 shown
           """
+
+  Scenario: dump statistics in JSON format
+    Given the plugins are installed
+     When the test file "example/tests/test_example.py" is created:
+          """
+          import unittest
+
+          class TestExample(unittest.TestCase):
+              def test_example(self):
+                  self.assertEqual(0, 1)
+          """
+      And the command "nosetests" is executed
+      And the command "quicktester-statistics --backlog 3 --json" is executed
+     Then the last executed command passes
+      And the last executed command prints the following JSON:
+          """
+          {
+              "runs": [
+                  [],
+                  [],
+                  [
+                      {
+                          "path": "example/tests/test_example.py",
+                          "module": "example.tests.test_example",
+                          "call": "TestExample.test_example",
+                          "runtime": "@REMOVED@",
+                          "status": "failed"
+                      }
+                  ]
+              ],
+              "summary": {
+                  "total": 1,
+                  "shown": 1
+              }
+          }
+          """

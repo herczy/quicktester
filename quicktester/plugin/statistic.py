@@ -67,12 +67,15 @@ def quicktester_statistics():
                         help='Show statistics for all tests collected')
     parser.add_argument('-F', '--only-failing', action='store_true', default=False,
                         help='Show only tests that had a failure in the runs shown')
+    parser.add_argument('-j', '--json', action='store_true', default=False,
+                        help='Dump results in JSON format')
 
     options = parser.parse_args()
 
     Statistic(options.file).dump_info(
         options.backlog,
         dump_all=options.show_all_tests,
-        failonly=options.only_failing
+        failonly=options.only_failing,
+        format_json=options.json
     )
     return 0

@@ -52,6 +52,12 @@ def step_impl(context, index):
     library.runner.assert_stderr(context, '', index)
 
 
+@then('the {index:w} executed command prints the following JSON')
+def step_impl(context, index):
+    library.runner.assert_stdout_json(context, context.text, index)
+    library.runner.assert_stderr(context, '', index)
+
+
 @then('the {index:w} executed command passes')
 @then('the command fails with a code {code:d}')
 @then('the command passes')
