@@ -58,7 +58,11 @@ class Statistic(object):
         if backlog not in self.__failure_sets:
             self.__failure_sets[backlog] = self.__database.get_failure_set(backlog)
 
-        return nose.util.test_address(obj) in self.__failure_sets[backlog]
+        address = nose.util.test_address(obj)
+        module_address = address[:2] + (None,)
+
+        return address in self.__failure_sets[backlog] or \
+               module_address in self.__failure_sets[backlog]
 
     def get_failure_paths(self, backlog):
         self.__verify_backlog(backlog)

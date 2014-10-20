@@ -99,6 +99,19 @@ class TestStatistics(unittest.TestCase):
         self.assertFalse(statistic.check_if_failed(self.test, 1))
         self.assertTrue(statistic.check_if_failed(self.test, 2))
 
+    def test_check_if_module_failed(self):
+        module_failure = FakeTest('/path/a/b', 'a.b', None)
+        self.add_report(
+            (module_failure, Report.STATUS_ERROR)
+        )
+
+        statistic = self.initialize_statistic()
+
+        self.assertTrue(statistic.check_if_failed(module_failure, 1))
+        self.assertTrue(statistic.check_if_failed(self.test, 1))
+        self.assertFalse(statistic.check_if_failed(FakeTest('/a/c', 'a.c', None), 1))
+        self.assertFalse(statistic.check_if_failed(FakeTest('/a/c', 'a.c', 'd.e'), 1))
+
     def test_report_all_passing(self):
         self.assert_failures([])
 

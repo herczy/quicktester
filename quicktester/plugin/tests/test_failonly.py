@@ -1,6 +1,7 @@
 import unittest
 import json
 import tempfile
+import nose
 
 from . import PluginTestCase, FakeDatabaseFactory
 
@@ -38,8 +39,9 @@ class FailOnlyPluginTest(PluginTestCase):
 
         self.assertFalse(plugin.enabled)
 
-    def setup_plugin(self):
-        test = FakeTest("/path/to/module", "module", "Test.func")
+    def setup_plugin(self, test=None):
+        if test is None:
+            test = FakeTest("/path/to/module", "module", "Test.test_func")
         report = Report()
 
         report.add(test, Report.STATUS_FAILED)
@@ -61,8 +63,8 @@ class FailOnlyPluginTest(PluginTestCase):
         self.assertEqual(None, plugin.wantDirectory('/path/to'))
 
     def test_want_module_and_function(self):
-        fake0 = FakeTest('/path/to/module', 'module', 'Test.func')
-        fake1 = FakeTest('/path/to/module2', 'module', 'Test.func2')
+        fake0 = FakeTest('/path/to/module', 'module', 'Test.test_func')
+        fake1 = FakeTest('/path/to/module2', 'module', 'Test.test_func2')
 
         plugin = self.setup_plugin()
 
@@ -71,6 +73,14 @@ class FailOnlyPluginTest(PluginTestCase):
 
         self.assertEqual(True, plugin.wantMethod(fake0))
         self.assertEqual(False, plugin.wantMethod(fake1))
+
+    def test_non_selected_modules_dont_run(self):
+        module_failure = FakeTest('/path/to/module', 'module', None)
+        nonselected = FakeTest('/path/to/module', 'module', 'Test.assertFunc')
+
+        plugin = self.setup_plugin(test=module_failure)
+
+        self.assertEqual(False, plugin.wantFunction(nonselected))
 
 
 class FakeFailOnlyPlugin(FailOnlyPlugin):
@@ -83,3 +93,6 @@ class FakeFailOnlyPlugin(FailOnlyPlugin):
 
     def _os_isfile(self, filename):
         return filename == DEFAULT_STATISTICS_FILE
+
+    def _is_test_selected(self, case):
+        return nose.util.test_address(case)[-1].rsplit('.', 1)[-1].startswith('test_')

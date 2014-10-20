@@ -4,7 +4,7 @@ Feature: display statistics even if a full test module fails
   In order to track my previous test failures and their progression
   I want to see what tests failed in the last few runs even if whole modules failed
 
-  Scenario: fixing an import error and seeing the statistics
+  Background:
     Given an empty package "example"
       And the plugins are installed
      When the test file "example/tests/test_example.py" is created:
@@ -25,7 +25,9 @@ Feature: display statistics even if a full test module fails
               def test_example(self):
                   self.assertEqual(1, 1)
           """
-      And the command "nosetests" is executed
+
+  Scenario: fixing an import error and seeing the statistics
+     When the command "nosetests" is executed
       And the command "quicktester-statistics --backlog 2" is executed
      Then the last executed command prints the following:
           """
@@ -33,4 +35,12 @@ Feature: display statistics even if a full test module fails
           [ .] example/tests/test_example.py:example.tests.test_example:TestExample.test_example
 
           2 test(s) out of 2 shown
+          """
+
+  Scenario: rerun the whole module if in the previous run it failed
+     When the command "nosetests -v --run-count 1" is executed
+     Then the last executed command passes
+      And the following tests are run:
+          """
+          example.tests.test_example.TestExample.test_example
           """

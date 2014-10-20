@@ -13,8 +13,13 @@ class FailOnlyPlugin(nose.plugins.Plugin):
     name = 'fail-only'
     run_count = 0
     statistic = None
+    loader = None
+    __running_in_is_test_selected = False
 
     def check_if_failed(self, obj):
+        if not self._is_test_selected(obj):
+            return False
+
         return self.statistic.check_if_failed(obj, self.run_count)
 
     #
@@ -41,11 +46,17 @@ class FailOnlyPlugin(nose.plugins.Plugin):
         self.failpaths = self.statistic.get_failure_paths(self.run_count)
         self.enabled = True
 
+    def prepareTestLoader(self, loader):
+        self.loader = loader
+
     def wantDirectory(self, path):
         if not any(util.is_reldir(fail, path) for fail in self.failpaths):
             return False
 
     def wantFunction(self, func):
+        if self.__running_in_is_test_selected:
+            return None
+
         return self.check_if_failed(func)
 
     wantMethod = wantFunction
@@ -55,3 +66,11 @@ class FailOnlyPlugin(nose.plugins.Plugin):
 
     def _os_isfile(self, filename):
         return os.path.isfile(filename)
+
+    def _is_test_selected(self, obj):
+        try:
+            self.__running_in_is_test_selected = True
+            return self.loader.selector.wantFunction(obj)
+
+        finally:
+            self.__running_in_is_test_selected = False
