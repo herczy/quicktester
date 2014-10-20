@@ -64,7 +64,7 @@ class Statistic(object):
         self.__verify_backlog(backlog)
         return set(path for path, _, _ in self.__database.get_failure_set(backlog))
 
-    def dump_info(self, backlog, relto='.', dump_all=False, file=sys.stdout):
+    def dump_info(self, backlog, relto='.', dump_all=False, failonly=False, file=sys.stdout):
         self.__verify_backlog(backlog)
         last_runid = self.__database.get_last_runid()
 
@@ -83,6 +83,9 @@ class Statistic(object):
                 test_runs.setdefault(addr, {})
                 test_runs[addr][runid] = status
 
+        if failonly:
+            test_runs = self.__filter_has_failing(test_runs)
+
         keys = list(test_runs.keys())
         keys.sort()
 
@@ -91,6 +94,14 @@ class Statistic(object):
             runbar = self.__get_runbar(test_runs[key], display_range)
 
             print('[{}] {}:{}:{}'.format(runbar, os.path.relpath(path, relto), module, call), file=file)
+
+    def __filter_has_failing(self, runs):
+        has_failing = set()
+        for addr, run in runs.items():
+            if any(status.failing for status in run.values()):
+                has_failing.add(addr)
+
+        return {addr: run for addr, run in runs.items() if addr in has_failing}
 
     def __verify_backlog(self, backlog):
         if backlog <= 0:

@@ -145,3 +145,24 @@ Feature: the command-line statistics tool
           [F] ../example/tests/test_example.py:example.tests.test_example:TestExample.test_example
           [F] test_other.py:other.test_other:TestOtherExample.test_zero_equals_one
           """
+
+  Scenario: dump statistics for only the failing cases in the statistics file
+    Given the plugins are installed
+     When the test file "example/tests/test_example.py" is created:
+          """
+          import unittest
+
+          class TestExample(unittest.TestCase):
+              def test_example(self):
+                  self.assertEqual(0, 1)
+
+              def test_passing(self):
+                  self.assertEqual(1, 1)
+          """
+      And the command "nosetests" is executed
+      And the command "quicktester-statistics --backlog 1 --only-failing" is executed
+     Then the last executed command passes
+      And the last executed command prints the following:
+          """
+          [F] example/tests/test_example.py:example.tests.test_example:TestExample.test_example
+          """
