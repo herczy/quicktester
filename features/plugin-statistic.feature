@@ -9,7 +9,10 @@ Feature: the command-line statistics tool
 
   Scenario: getting the statistics without previous test runs
      When the command "quicktester-statistics" is executed
-     Then the command does not print anything
+     Then the last executed command prints the following:
+          """
+          0 test(s) out of 0 shown
+          """
       And the command passes
 
   Scenario: fixing a test and seeing the statistics
@@ -36,6 +39,8 @@ Feature: the command-line statistics tool
      Then the last executed command prints the following:
           """
           [F.] example/tests/test_example.py:example.tests.test_example:TestExample.test_example
+
+          1 test(s) out of 1 shown
           """
 
   Scenario: adding new tests and seeing the statistics
@@ -70,6 +75,8 @@ Feature: the command-line statistics tool
           [ E] example/tests/test_example.py:example.tests.test_example:TestExample.test_error
           [F.] example/tests/test_example.py:example.tests.test_example:TestExample.test_example
           [ F] example/tests/test_example.py:example.tests.test_example:TestExample.test_failing
+
+          3 test(s) out of 3 shown
           """
       And the last executed command passes
 
@@ -82,6 +89,8 @@ Feature: the command-line statistics tool
      Then the last executed command prints the following:
           """
           [  F ] example/tests/test_example.py:example.tests.test_example:TestExample.test_example
+
+          1 test(s) out of 1 shown
           """
       And the last executed command passes
 
@@ -112,10 +121,14 @@ Feature: the command-line statistics tool
           """
           [F] example/tests/test_example.py:example.tests.test_example:TestExample.test_example
           [F] other/test_other.py:other.test_other:TestOtherExample.test_zero_equals_one
+
+          2 test(s) out of 2 shown
           """
       And the last executed command prints the following:
           """
           [F] test_other.py:other.test_other:TestOtherExample.test_zero_equals_one
+
+          1 test(s) out of 2 shown
           """
 
   Scenario: dump statistics for all cases in the statistics file
@@ -144,6 +157,8 @@ Feature: the command-line statistics tool
           """
           [F] ../example/tests/test_example.py:example.tests.test_example:TestExample.test_example
           [F] test_other.py:other.test_other:TestOtherExample.test_zero_equals_one
+
+          2 test(s) out of 2 shown
           """
 
   Scenario: dump statistics for only the failing cases in the statistics file
@@ -165,4 +180,6 @@ Feature: the command-line statistics tool
       And the last executed command prints the following:
           """
           [F] example/tests/test_example.py:example.tests.test_example:TestExample.test_example
+
+          1 test(s) out of 2 shown
           """

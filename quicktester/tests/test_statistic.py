@@ -164,6 +164,8 @@ class TestStatistics(unittest.TestCase):
 [     . .FE] a/b:a.b:Test.func
 [      . S.] a/b:a.b:Test.func2
 [      ....] a/b:a.b:Test.passing
+
+3 test(s) out of 3 shown
 '''
 
     def test_dump_info(self):
@@ -177,6 +179,8 @@ class TestStatistics(unittest.TestCase):
     EXPECTED_LIMITED_OUTPUT = '''\
 [     . .FE] a/b:a.b:Test.func
 [      ....] a/b:a.b:Test.passing
+
+2 test(s) out of 3 shown
 '''
 
     def test_dump_info_relative_to_a_path(self):
@@ -191,6 +195,8 @@ class TestStatistics(unittest.TestCase):
 [      . S.] ../otherpath/a/b:a.b:Test.func2
 [     . .FE] a/b:a.b:Test.func
 [      ....] a/b:a.b:Test.passing
+
+3 test(s) out of 3 shown
 '''
 
     def test_dump_all_info(self):
@@ -203,6 +209,8 @@ class TestStatistics(unittest.TestCase):
 
     EXPECTED_FAILONLY_OUTPUT = '''\
 [     . .FE] a/b:a.b:Test.func
+
+1 test(s) out of 3 shown
 '''
 
     def test_dump_failonly_info(self):
@@ -260,6 +268,13 @@ class FakeDatabase(object):
     def get_run(self, runid):
         for (path, module, call), status in self.__runs[runid]:
             yield path, module, call, Report.get_status_by_id(status)
+
+    def get_test_count(self):
+        tests = set()
+        for run in self.__runs:
+            tests.update(addr for addr, _ in run)
+
+        return len(tests)
 
 
 class FakeDatabaseFactory(object):

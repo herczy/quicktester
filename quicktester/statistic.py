@@ -89,11 +89,18 @@ class Statistic(object):
         keys = list(test_runs.keys())
         keys.sort()
 
+        count = 0
         for path, module, call in keys:
             key = (path, module, call)
             runbar = self.__get_runbar(test_runs[key], display_range)
 
             print('[{}] {}:{}:{}'.format(runbar, os.path.relpath(path, relto), module, call), file=file)
+            count += 1
+
+        if count:
+            print(file=file)
+
+        print('{} test(s) out of {} shown'.format(count, self.__database.get_test_count()), file=file)
 
     def __filter_has_failing(self, runs):
         has_failing = set()
@@ -169,6 +176,10 @@ class _Database(object):
 
         for path, module, call, statusid in cur:
             yield path, module, call, Report.get_status_by_id(statusid)
+
+    def get_test_count(self):
+        cur = self.__connection.execute('SELECT count(*) FROM test')
+        return cur.fetchone()[0]
 
     def __report_case(self, case, status, runid):
         addr = nose.util.test_address(case)
