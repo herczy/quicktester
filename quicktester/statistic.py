@@ -87,20 +87,29 @@ class Statistic(object):
             test_runs = self.__filter_has_failing(test_runs)
 
         keys = list(test_runs.keys())
-        keys.sort()
+        keys.sort(key=self.__sanitize_address)
 
         count = 0
         for path, module, call in keys:
             key = (path, module, call)
             runbar = self.__get_runbar(test_runs[key], display_range)
 
-            print('[{}] {}:{}:{}'.format(runbar, os.path.relpath(path, relto), module, call), file=file)
+            address = self.__sanitize_address((os.path.relpath(path, relto), module, call))
+
+            print('[{}] {}'.format(runbar, address), file=file)
             count += 1
 
         if count:
             print(file=file)
 
         print('{} test(s) out of {} shown'.format(count, self.__database.get_test_count()), file=file)
+
+    def __sanitize_address(self, key):
+        path, module, call = key
+        if call is None:
+            return path + ':' + module
+
+        return ':'.join(key)
 
     def __filter_has_failing(self, runs):
         has_failing = set()
