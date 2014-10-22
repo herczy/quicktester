@@ -176,89 +176,84 @@ class TestStatistics(unittest.TestCase):
 
         return self.initialize_statistic()
 
-    EXPECTED_OUTPUT = '''\
+    def __dump_info(self, backlog=10, relpath='/path/', new_test_base_path=None, **kwargs):
+        f = StringIO()
+        if new_test_base_path is None:
+            new_test_base_path = relpath
+
+        kwargs['file'] = f
+        self.__prepare_statistics(new_test_base_path).dump_info(backlog, relpath, **kwargs)
+
+        return f.getvalue().strip()
+
+    def assertDumped(self, expected, *args, **kwargs):
+        self.assertEqual(expected.strip(), self.__dump_info(*args, **kwargs))
+
+    def test_dump_info(self):
+        self.assertDumped(
+            '''\
 [     . .FE] a/b:a.b:Test.func
 [      . S.] a/b:a.b:Test.func2
 [      ....] a/b:a.b:Test.passing
 
 3 test(s) out of 3 shown
-'''
+            '''
+        )
 
-    def test_dump_info(self):
-        statistic = self.__prepare_statistics()
-
-        f = StringIO()
-        statistic.dump_info(10, relto='/path/', file=f)
-
-        self.assertEqual(self.EXPECTED_OUTPUT, f.getvalue())
-
-    EXPECTED_LIMITED_OUTPUT = '''\
+    def test_dump_info_relative_to_a_path(self):
+        self.assertDumped(
+            '''\
 [     . .FE] a/b:a.b:Test.func
 [      ....] a/b:a.b:Test.passing
 
 2 test(s) out of 3 shown
-'''
+            ''',
+            new_test_base_path='/otherpath/'
+        )
 
-    def test_dump_info_relative_to_a_path(self):
-        statistic = self.__prepare_statistics(new_test_base_path='/otherpath/')
-
-        f = StringIO()
-        statistic.dump_info(10, relto='/path/', file=f)
-
-        self.assertEqual(self.EXPECTED_LIMITED_OUTPUT, f.getvalue())
-
-    EXPECTED_DUMP_ALL_OUTPUT = '''\
+    def test_dump_all_info(self):
+        self.assertDumped(
+            '''\
 [      . S.] ../otherpath/a/b:a.b:Test.func2
 [     . .FE] a/b:a.b:Test.func
 [      ....] a/b:a.b:Test.passing
 
 3 test(s) out of 3 shown
-'''
+            ''',
+            new_test_base_path='/otherpath/',
+            dump_all=True
+        )
 
-    def test_dump_all_info(self):
-        statistic = self.__prepare_statistics(new_test_base_path='/otherpath/')
-
-        f = StringIO()
-        statistic.dump_info(10, relto='/path/', dump_all=True, file=f)
-
-        self.assertEqual(self.EXPECTED_DUMP_ALL_OUTPUT, f.getvalue())
-
-    EXPECTED_FAILONLY_OUTPUT = '''\
+    def test_dump_failonly_info(self):
+        self.assertDumped(
+            '''\
 [     . .FE] a/b:a.b:Test.func
 
 1 test(s) out of 3 shown
-'''
-
-    def test_dump_failonly_info(self):
-        statistic = self.__prepare_statistics()
-
-        f = StringIO()
-        statistic.dump_info(10, relto='/path/', failonly=True, file=f)
-
-        self.assertEqual(self.EXPECTED_FAILONLY_OUTPUT, f.getvalue())
-
-    EXPECTED_JSON_OUTPUT = {
-        "runs": [
-            [
-                {
-                    "path": "a/b",
-                    "module": "a.b",
-                    "call": "Test.func",
-                    "runtime": time.strftime("%Y-%m-%d %H:%M +0000", time.gmtime(0)),
-                    "status": "error",
-                }
-            ]
-        ],
-        "summary": {"total": 3, "shown": 1}
-    }
+            ''',
+            failonly=True
+        )
 
     def test_dump_json_info(self):
-        statistic = self.__prepare_statistics()
+        info = self.__dump_info(1, format_json=True, failonly=True)
 
-        f = StringIO()
-        statistic.dump_info(1, relto='/path/', failonly=True, format_json=True, file=f)
-
-        self.assertEqual(self.EXPECTED_JSON_OUTPUT, json.loads(f.getvalue()))
+        self.assertEqual(
+            {
+                "runs": [
+                    [
+                        {
+                            "path": "a/b",
+                            "module": "a.b",
+                            "call": "Test.func",
+                            "runtime": time.strftime("%Y-%m-%d %H:%M +0000", time.gmtime(0)),
+                            "status": "error",
+                        }
+                    ]
+                ],
+                "summary": {"total": 3, "shown": 1}
+            },
+            json.loads(info)
+        )
 
 
 class FakeResult(object):
