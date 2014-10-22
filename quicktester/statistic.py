@@ -155,10 +155,15 @@ class Statistic(object):
 
     def __sanitize_address(self, key):
         path, module, call = key
-        if call is None:
-            return path + ':' + module
 
-        return ':'.join(key)
+        res = path
+        if module is not None:
+            res += ':' + module
+
+        if call is not None:
+            res += ':' + call
+
+        return res
 
     def __filter_has_failing(self, runs):
         has_failing = set()

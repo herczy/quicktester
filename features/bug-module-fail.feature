@@ -25,6 +25,10 @@ Feature: display statistics even if a full test module fails
               def test_example(self):
                   self.assertEqual(1, 1)
           """
+      And the text file "nonpython" is created:
+          """
+          Not a Python script.
+          """
 
   Scenario: fixing an import error and seeing the statistics
      When the command "nosetests" is executed
@@ -35,6 +39,16 @@ Feature: display statistics even if a full test module fails
           [ .] example/tests/test_example.py:example.tests.test_example:TestExample.test_example
 
           2 test(s) out of 2 shown
+          """
+
+  Scenario: running nosetests for a non-Python file
+     When the command "nosetests nonpython" is executed
+      And the command "quicktester-statistics --backlog 1" is executed
+     Then the last executed command prints the following:
+          """
+          [E] nonpython
+
+          1 test(s) out of 2 shown
           """
 
   Scenario: rerun the whole module if in the previous run it failed
