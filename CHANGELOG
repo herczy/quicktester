@@ -1,3 +1,14 @@
+0.3
+
+  - contrib: small improvements to the VIM plugin
+  - statistics: use a global statistics file. This way you can collect
+    a lot of information about how you do the TDD dance. Despite this,
+    the statistics tool will mostly work like before, but now you can
+    retrieve the tests that ran under your current working directory,
+    even if you didn't start the tests there.
+  - statistics: added a few extra options (JSON output, show all tests,
+    etc.)
+
 0.2
 
 - statistics: use a new, sqlite3-based format. This statistics
