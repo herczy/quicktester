@@ -1,13 +1,22 @@
+0.4
+
+- tox: added tox configuration file so it's easier to run the tests
+  locally. This also means that the Makefile and the old runtests
+  script is no longer needed.
+- version: added support for Python 3.5, but dropped Python 3.2.
+  While 3.2 is no longer officially supported, it will work a little
+  bit longer with it.
+
 0.3
 
-  - contrib: small improvements to the VIM plugin
-  - statistics: use a global statistics file. This way you can collect
-    a lot of information about how you do the TDD dance. Despite this,
-    the statistics tool will mostly work like before, but now you can
-    retrieve the tests that ran under your current working directory,
-    even if you didn't start the tests there.
-  - statistics: added a few extra options (JSON output, show all tests,
-    etc.)
+- contrib: small improvements to the VIM plugin
+- statistics: use a global statistics file. This way you can collect
+  a lot of information about how you do the TDD dance. Despite this,
+  the statistics tool will mostly work like before, but now you can
+  retrieve the tests that ran under your current working directory,
+  even if you didn't start the tests there.
+- statistics: added a few extra options (JSON output, show all tests,
+  etc.)
 
 0.2
 
