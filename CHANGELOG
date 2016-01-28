@@ -1,3 +1,7 @@
+0.5
+
+- re-release of 0.4 since the previous release was screwed up.
+
 0.4
 
 - tox: added tox configuration file so it's easier to run the tests
