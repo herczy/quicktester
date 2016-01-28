@@ -42,7 +42,7 @@ fun! s:QuickTester.check_quicktester()
 endfun
 
 fun! s:QuickTester.get_nosetest()
-  let cmd = self.get_python() . ' $(which nosetests)'
+  let cmd = self.get_python() . ' -m nose'
 
   if exists('g:nose_extraargs')
     let cmd = cmd . ' ' . g:nose_extraargs
