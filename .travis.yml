@@ -1,15 +1,13 @@
 language: python
-python:
-  - 2.7
-  - 3.2
-  - 3.4
+python: 3.4
 
-before_install:
-  - sudo apt-get install make
+env:
+  - TOX_ENV=py32
+  - TOX_ENV=py33
+  - TOX_ENV=py34
 
 install:
-  - "pip install -r testrequirements.txt"
-  - "pip install -r requirements.txt"
+  - pip install tox
 
 script:
-  - make
+  - tox -e $TOX_ENV

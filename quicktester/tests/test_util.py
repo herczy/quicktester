@@ -3,11 +3,11 @@ import unittest
 
 from . import FakeConfig
 
-from .. import util
+from ..util import is_reldir
 
 
 class TestUtil(unittest.TestCase):
     def test_is_reldir(self):
-        self.assertTrue(util.is_reldir('a/b', ''))
-        self.assertTrue(util.is_reldir('a/b', 'a'))
-        self.assertFalse(util.is_reldir('a/b', 'b'))
+        self.assertTrue(is_reldir('a/b', ''))
+        self.assertTrue(is_reldir('a/b', 'a'))
+        self.assertFalse(is_reldir('a/b', 'b'))

@@ -16,10 +16,6 @@ finally:
     del sys.path[0]
 
 
-with open(os.path.join(os.path.dirname(__file__), 'requirements.txt')) as f:
-    requires = [re.sub(r'^([^<>=]*)[<>=]=.*$', r'\1', line.strip()) for line in f if line]
-
-
 setup(
     name='quicktester',
     description='quicktester nose plugin set',
@@ -70,7 +66,7 @@ setup(
             'quickfix = quicktester.plugin.quickfix:QuickFixPlugin',
         ],
     },
-    requires=requires,
+    requires=['nose'],
     data_files=[
         ('share/quicktester', ['contrib/quicktester.vim']),
     ]
